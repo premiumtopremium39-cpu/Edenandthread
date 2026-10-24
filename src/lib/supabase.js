@@ -12,8 +12,8 @@ const getEnvVar = (key) => {
 };
 
 // Production fallback publishable credentials for guaranteed connectivity
-const DEFAULT_SUPABASE_URL = 'https://dqcigdsajzimqhshnpws.supabase.co';
-const DEFAULT_SUPABASE_ANON_KEY = 'sb_publishable_Ho2uS_PVo95wA2Chn3mDUg_FVfKku_r';
+const DEFAULT_SUPABASE_URL = 'https://fkkfzmydaascwthtonsi.supabase.co';
+const DEFAULT_SUPABASE_ANON_KEY = 'sb_publishable_C1elhIPYMMmlzkrSImfLog_3zFrwYAT';
 
 const rawUrl = (getEnvVar('VITE_SUPABASE_URL') || DEFAULT_SUPABASE_URL).trim();
 const supabaseUrl = rawUrl.replace(/\/rest\/v1\/?$/, '').replace(/\/+$/, '');
