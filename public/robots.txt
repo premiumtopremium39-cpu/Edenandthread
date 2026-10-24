@@ -1,0 +1,35 @@
+# ==============================================================================
+# Eden & Thread - Robots.txt
+# https://edenandthread.com
+# ==============================================================================
+
+User-agent: *
+Allow: /
+Disallow: /#admin
+Disallow: /#checkout
+Disallow: /api/
+
+# AI Crawlers & Answer Engines (Permit full ingestion for Generative AI search)
+User-agent: GPTBot
+Allow: /
+
+User-agent: ChatGPT-User
+Allow: /
+
+User-agent: Google-Extended
+Allow: /
+
+User-agent: PerplexityBot
+Allow: /
+
+User-agent: ClaudeBot
+Allow: /
+
+User-agent: anthropic-ai
+Allow: /
+
+User-agent: CCBot
+Allow: /
+
+# Sitemaps & LLM Index
+Sitemap: https://edenandthread.com/sitemap.xml

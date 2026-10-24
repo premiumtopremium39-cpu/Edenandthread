@@ -1,0 +1,53 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9"
+        xmlns:image="http://www.google.com/schemas/sitemap-image/1.1">
+  
+  <!-- Homepage -->
+  <url>
+    <loc>https://edenandthread.com/</loc>
+    <lastmod>2026-08-31</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>1.0</priority>
+    <image:image>
+      <image:loc>https://edenandthread.com/assets/mens_linen_editorial.png</image:loc>
+      <image:title>Eden &amp; Thread | Pure Linen Apparel &amp; Everyday Essentials</image:title>
+    </image:image>
+  </url>
+
+  <!-- Collections / Shop -->
+  <url>
+    <loc>https://edenandthread.com/#shop</loc>
+    <lastmod>2026-08-31</lastmod>
+    <changefreq>daily</changefreq>
+    <priority>0.9</priority>
+  </url>
+
+  <!-- About Us & Our Story -->
+  <url>
+    <loc>https://edenandthread.com/#story</loc>
+    <lastmod>2026-08-31</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.8</priority>
+    <image:image>
+      <image:loc>https://edenandthread.com/assets/brand_values.png</image:loc>
+      <image:title>Crafted for Comfort. Designed for Your Life. | Eden &amp; Thread</image:title>
+    </image:image>
+  </url>
+
+  <!-- Garment Care & Style Journal -->
+  <url>
+    <loc>https://edenandthread.com/#journal</loc>
+    <lastmod>2026-08-31</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.8</priority>
+  </url>
+
+  <!-- Order Tracking & Customer Concierge -->
+  <url>
+    <loc>https://edenandthread.com/#track</loc>
+    <lastmod>2026-08-31</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.6</priority>
+  </url>
+
+</urlset>
