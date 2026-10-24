@@ -11,13 +11,15 @@ const getEnvVar = (key) => {
   return '';
 };
 
-// Production fallback publishable credentials for guaranteed connectivity
-const DEFAULT_SUPABASE_URL = 'https://fkkfzmydaascwthtonsi.supabase.co';
-const DEFAULT_SUPABASE_ANON_KEY = 'sb_publishable_C1elhIPYMMmlzkrSImfLog_3zFrwYAT';
+// Active Supabase Cloud Project Configuration
+const ACTIVE_SUPABASE_URL = 'https://fkkfzmydaascwthtonsi.supabase.co';
+const ACTIVE_SUPABASE_ANON_KEY = 'sb_publishable_C1elhIPYMMmlzkrSImfLog_3zFrwYAT';
 
-const rawUrl = (getEnvVar('VITE_SUPABASE_URL') || DEFAULT_SUPABASE_URL).trim();
-const supabaseUrl = rawUrl.replace(/\/rest\/v1\/?$/, '').replace(/\/+$/, '');
-const supabaseAnonKey = (getEnvVar('VITE_SUPABASE_ANON_KEY') || DEFAULT_SUPABASE_ANON_KEY).trim();
+const envUrl = (getEnvVar('VITE_SUPABASE_URL') || '').trim();
+const supabaseUrl = (envUrl && !envUrl.includes('dqcigdsajzimqhshnpws')) ? envUrl : ACTIVE_SUPABASE_URL;
+
+const envKey = (getEnvVar('VITE_SUPABASE_ANON_KEY') || '').trim();
+const supabaseAnonKey = (envKey && !envKey.includes('Ho2uS_PVo95wA2Chn3mDUg')) ? envKey : ACTIVE_SUPABASE_ANON_KEY;
 
 export const isSupabaseConfigured = () => {
   return Boolean(
