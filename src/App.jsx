@@ -18,6 +18,7 @@ const ProductDetailPage = lazy(() => import('./pages/ProductDetailPage'));
 const OurStoryPage = lazy(() => import('./pages/OurStoryPage'));
 const JournalPage = lazy(() => import('./pages/JournalPage'));
 const CheckoutPage = lazy(() => import('./pages/CheckoutPage'));
+const LoginPage = lazy(() => import('./pages/LoginPage'));
 const OrderTrackingPage = lazy(() => import('./pages/OrderTrackingPage'));
 
 // Supabase Integration
