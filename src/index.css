@@ -992,9 +992,26 @@ button {
   transform: scale(1.03);
 }
 
-.product-card:hover .product-card-overlay {
+.product-card:hover .product-card-overlay,
+.product-card:focus-within .product-card-overlay {
   opacity: 1;
   pointer-events: auto;
+}
+
+/* Touch and mobile access for Quick View & Add to Bag */
+@media (hover: none), (max-width: 768px) {
+  .product-card-overlay {
+    opacity: 1;
+    pointer-events: auto;
+    background-color: transparent;
+    padding: 1rem;
+    gap: 0.5rem;
+  }
+  .overlay-btn {
+    padding: 0.65rem 0.5rem;
+    font-size: 0.7rem;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  }
 }
 
 .product-badge {
