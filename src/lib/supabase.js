@@ -329,6 +329,23 @@ export const orderService = {
   async createOrder(orderPayload) {
     if (!supabase) return null;
 
+    // Normalize order_status to match PostgreSQL CHECK constraint ('Placed', 'Paid', 'Preparation', 'Dispatched', 'Delivered', 'Cancelled')
+    let validOrderStatus = 'Paid';
+    const rawStatus = (orderPayload.status || '').toLowerCase();
+    if (rawStatus.includes('cancel')) {
+      validOrderStatus = 'Cancelled';
+    } else if (rawStatus.includes('deliver')) {
+      validOrderStatus = 'Delivered';
+    } else if (rawStatus.includes('dispatch') || rawStatus.includes('ship')) {
+      validOrderStatus = 'Dispatched';
+    } else if (rawStatus.includes('prep') || rawStatus.includes('process')) {
+      validOrderStatus = 'Preparation';
+    } else if (rawStatus.includes('pending') || rawStatus.includes('placed') || rawStatus.includes('cod')) {
+      validOrderStatus = 'Placed';
+    } else {
+      validOrderStatus = 'Paid';
+    }
+
     const row = {
       order_id: orderPayload.orderId || `order_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`,
       user_id: orderPayload.userId || null,
@@ -342,11 +359,11 @@ export const orderService = {
       total_amount: Number(orderPayload.amount || orderPayload.totalAmount || 0),
       currency: orderPayload.currency || 'INR',
       payment_id: orderPayload.paymentId || null,
-      payment_status: orderPayload.paymentStatus || (orderPayload.paymentId ? 'paid' : 'pending'),
-      order_status: orderPayload.status || 'Paid',
+      payment_status: (orderPayload.paymentId && orderPayload.paymentId !== 'PAYABLE_ON_DELIVERY') ? 'paid' : 'pending',
+      order_status: validOrderStatus,
       carrier: orderPayload.carrier || null,
       tracking_number: orderPayload.trackingNumber || null,
-      notes: orderPayload.notes || {},
+      notes: { ...(orderPayload.notes || {}), display_status: orderPayload.status },
     };
 
     const { data, error } = await supabase
