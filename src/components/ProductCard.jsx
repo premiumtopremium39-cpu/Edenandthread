@@ -113,28 +113,31 @@ function ProductCard({
         {/* Inline Color Dot Swatches */}
         {colors.length > 1 && (
           <div style={{ display: 'flex', gap: '0.45rem', marginBottom: '0.5rem', alignItems: 'center' }}>
-            {colors.map((c) => (
-              <span
-                key={c.name}
-                onClick={(e) => {
-                  e.preventDefault();
-                  e.stopPropagation();
-                  setSelectedColor(c.name);
-                }}
-                style={{
-                  width: '16px',
-                  height: '16px',
-                  borderRadius: '50%',
-                  backgroundColor: c.code,
-                  cursor: 'pointer',
-                  border: c.name === selectedColor ? '2px solid var(--gold)' : c.code?.toLowerCase() === '#ffffff' ? '1px solid #ccc' : '1px solid transparent',
-                  transform: c.name === selectedColor ? 'scale(1.2)' : 'scale(1)',
-                  transition: 'all 0.15s ease',
-                  display: 'inline-block'
-                }}
-                title={`${c.name} (${getProductColorStock(product, c.name)} units)`}
-              />
-            ))}
+            {colors.map((c) => {
+              const colorCode = c.code || c.hex || '#FFFFFF';
+              return (
+                <span
+                  key={c.name}
+                  onClick={(e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    setSelectedColor(c.name);
+                  }}
+                  style={{
+                    width: '16px',
+                    height: '16px',
+                    borderRadius: '50%',
+                    backgroundColor: colorCode,
+                    cursor: 'pointer',
+                    border: c.name === selectedColor ? '2px solid var(--gold)' : colorCode.toLowerCase() === '#ffffff' ? '1px solid #ccc' : '1px solid transparent',
+                    transform: c.name === selectedColor ? 'scale(1.2)' : 'scale(1)',
+                    transition: 'all 0.15s ease',
+                    display: 'inline-block'
+                  }}
+                  title={`${c.name} (${getProductColorStock(product, c.name)} units)`}
+                />
+              );
+            })}
           </div>
         )}
 

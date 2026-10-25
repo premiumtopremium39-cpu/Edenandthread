@@ -262,29 +262,32 @@ export default function QuickViewModal({
                 Color: <strong id="modalSelectedColor">{selectedColor}</strong>
               </span>
               <div className="color-dots" id="modalColorDots" style={{ display: 'flex', gap: '0.6rem' }}>
-                {(product.colors || []).map((c) => (
-                  <span 
-                    key={c.name}
-                    className={`color-dot ${c.name === selectedColor ? 'active' : ''}`} 
-                    data-color={c.name} 
-                    style={{ 
-                      backgroundColor: c.code, 
-                      cursor: 'pointer',
-                      width: '28px',
-                      height: '28px',
-                      borderRadius: '50%',
-                      border: c.name === selectedColor ? '2.5px solid var(--gold)' : c.code.toLowerCase() === '#ffffff' ? '1px solid var(--border-medium)' : '1px solid transparent',
-                      boxShadow: c.name === selectedColor ? '0 0 0 2px #fff inset, 0 2px 6px rgba(0,0,0,0.15)' : 'none',
-                      transform: c.name === selectedColor ? 'scale(1.1)' : 'scale(1)',
-                      transition: 'all 0.2s ease',
-                      display: 'inline-block'
-                    }}
-                    onClick={() => handleColorChange(c.name)}
-                    role="button"
-                    aria-label={`Select color ${c.name}`}
-                    title={`${c.name} (${getProductColorStock(product, c.name)} in stock)`}
-                  />
-                ))}
+                {(product.colors || []).map((c) => {
+                  const colorCode = c.code || c.hex || '#FFFFFF';
+                  return (
+                    <span 
+                      key={c.name}
+                      className={`color-dot ${c.name === selectedColor ? 'active' : ''}`} 
+                      data-color={c.name} 
+                      style={{ 
+                        backgroundColor: colorCode, 
+                        cursor: 'pointer',
+                        width: '28px',
+                        height: '28px',
+                        borderRadius: '50%',
+                        border: c.name === selectedColor ? '2.5px solid var(--gold)' : colorCode.toLowerCase() === '#ffffff' ? '1px solid var(--border-medium)' : '1px solid transparent',
+                        boxShadow: c.name === selectedColor ? '0 0 0 2px #fff inset, 0 2px 6px rgba(0,0,0,0.15)' : 'none',
+                        transform: c.name === selectedColor ? 'scale(1.1)' : 'scale(1)',
+                        transition: 'all 0.2s ease',
+                        display: 'inline-block'
+                      }}
+                      onClick={() => handleColorChange(c.name)}
+                      role="button"
+                      aria-label={`Select color ${c.name}`}
+                      title={`${c.name} (${getProductColorStock(product, c.name)} in stock)`}
+                    />
+                  );
+                })}
               </div>
             </div>
 

@@ -332,27 +332,30 @@ export default function ProductDetailPage({
                 Color: <strong id="selectedColorName">{selectedColor}</strong>
               </span>
               <div className="color-dots" style={{ display: 'flex', gap: '0.75rem' }}>
-                {(product.colors || []).map((c) => (
-                  <button 
-                    key={c.name}
-                    className={`color-dot ${c.name === selectedColor ? 'active' : ''}`} 
-                    data-color={c.name} 
-                    onClick={() => handleColorChange(c.name)}
-                    style={{ 
-                      backgroundColor: c.code, 
-                      width: '32px', 
-                      height: '32px', 
-                      borderRadius: '50%',
-                      border: c.name === selectedColor ? '2.5px solid var(--gold)' : c.code.toLowerCase() === '#ffffff' ? '1px solid var(--border-medium)' : '1px solid transparent',
-                      cursor: 'pointer',
-                      boxShadow: c.name === selectedColor ? '0 0 0 2px #fff inset, 0 2px 8px rgba(0,0,0,0.15)' : 'none',
-                      transform: c.name === selectedColor ? 'scale(1.1)' : 'scale(1)',
-                      transition: 'all 0.2s ease'
-                    }}
-                    aria-label={c.name}
-                    title={`${c.name} (${getProductColorStock(product, c.name)} in stock)`}
-                  />
-                ))}
+                {(product.colors || []).map((c) => {
+                  const colorCode = c.code || c.hex || '#FFFFFF';
+                  return (
+                    <button 
+                      key={c.name}
+                      className={`color-dot ${c.name === selectedColor ? 'active' : ''}`} 
+                      data-color={c.name} 
+                      onClick={() => handleColorChange(c.name)}
+                      style={{ 
+                        backgroundColor: colorCode, 
+                        width: '32px', 
+                        height: '32px', 
+                        borderRadius: '50%',
+                        border: c.name === selectedColor ? '2.5px solid var(--gold)' : colorCode.toLowerCase() === '#ffffff' ? '1px solid var(--border-medium)' : '1px solid transparent',
+                        cursor: 'pointer',
+                        boxShadow: c.name === selectedColor ? '0 0 0 2px #fff inset, 0 2px 8px rgba(0,0,0,0.15)' : 'none',
+                        transform: c.name === selectedColor ? 'scale(1.1)' : 'scale(1)',
+                        transition: 'all 0.2s ease'
+                      }}
+                      aria-label={c.name}
+                      title={`${c.name} (${getProductColorStock(product, c.name)} in stock)`}
+                    />
+                  );
+                })}
               </div>
             </div>
 

@@ -1013,7 +1013,7 @@ export default function App() {
     );
   };
 
-  const selectedQuickViewProduct = products.find(p => p.id === quickViewProductId);
+  const selectedQuickViewProduct = products.find(p => p.id === quickViewProductId || String(p.id) === String(quickViewProductId));
   const cartCount = cart.reduce((acc, item) => acc + item.qty, 0);
 
   return (
