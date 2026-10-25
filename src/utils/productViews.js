@@ -95,6 +95,15 @@ export function getProductColorViews(product, colorName) {
       }
     }
 
+    // If top-level custom uploaded image exists on product
+    const customTop = (product.image && (product.image.includes('supabase.co') || product.image.startsWith('http') || product.image.startsWith('data:'))) ? product.image : null;
+    if (customTop) {
+      return [
+        { name: 'Front View', url: customTop },
+        ...get5ViewsForSet('shirt').slice(1)
+      ];
+    }
+
     // 2. Intelligent keyword resolution for color names
     const cName = (colorName || selectedColorObj?.name || '').toLowerCase();
     if (cName.includes('navy')) {
