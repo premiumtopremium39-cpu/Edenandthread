@@ -201,13 +201,7 @@ export default function Header({
                         <i className="fa-solid fa-credit-card" style={{ marginRight: '0.5rem', width: '14px' }}></i> Saved Checkout Info
                       </a>
                     </li>
-                    {user?.role === 'admin' && (
-                      <li>
-                        <a href="#admin" onClick={() => setIsDropdownOpen(false)} style={{ display: 'block', transition: 'var(--transition-fast)', color: 'var(--gold-dark)', fontWeight: 600 }}>
-                          <i className="fa-solid fa-shield-halved" style={{ marginRight: '0.5rem', width: '14px' }}></i> Executive Admin
-                        </a>
-                      </li>
-                    )}
+
                     <li style={{ borderTop: '1px solid var(--border-light)', paddingTop: '0.6rem', marginTop: '0.2rem' }}>
                       <button 
                         onClick={() => {
