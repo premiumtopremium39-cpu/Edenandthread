@@ -28,7 +28,8 @@ import {
   productService, 
   orderService, 
   promoService, 
-  announcementService, 
+  announcementService,
+  sizeGuideService, 
   formatUserData, 
   isSupabaseConfigured 
 } from './lib/supabase';
@@ -310,6 +311,13 @@ export default function App() {
   const [isWishlistOpen, setIsWishlistOpen] = useState(false);
   const [isSearchOpen, setIsSearchOpen] = useState(false);
   const [isSizeChartOpen, setIsSizeChartOpen] = useState(false);
+  const [sizeGuideData, setSizeGuideData] = useState(() => {
+    const saved = localStorage.getItem('eden_threads_sizeguide');
+    if (saved) {
+      try { return JSON.parse(saved); } catch {}
+    }
+    return null;
+  });
   const [quickViewProductId, setQuickViewProductId] = useState(null);
   const [trackingOrderId, setTrackingOrderId] = useState(null);
   const [toasts, setToasts] = useState([]);
@@ -319,16 +327,18 @@ export default function App() {
     async function loadCloudData() {
       if (!isSupabaseConfigured()) return;
       try {
-        const [cloudProducts, cloudPromos, cloudAnnouncement, cloudOrders] = await Promise.all([
+        const [cloudProducts, cloudPromos, cloudAnnouncement, cloudOrders, cloudSizeGuide] = await Promise.all([
           productService.getProducts(),
           promoService.getAllPromos(),
           announcementService.getAnnouncement(),
+          sizeGuideService.getSizeGuide(),
           orderService.getOrders(),
         ]);
 
         if (cloudProducts && cloudProducts.length > 0) setProducts(cloudProducts);
         if (cloudPromos && cloudPromos.length > 0) setPromoCodes(cloudPromos);
         if (cloudAnnouncement) setAnnouncementText(cloudAnnouncement);
+        if (cloudSizeGuide) setSizeGuideData(cloudSizeGuide);
         if (cloudOrders && cloudOrders.length > 0) setOrders(cloudOrders);
       } catch (err) {
         console.warn("[Supabase Load Notice]:", err);
@@ -353,8 +363,12 @@ export default function App() {
       })
       .on('postgres_changes', { event: '*', schema: 'public', table: 'announcements' }, async () => {
         try {
-          const latestMsg = await announcementService.getAnnouncement();
+          const [latestMsg, latestGuide] = await Promise.all([
+            announcementService.getAnnouncement(),
+            sizeGuideService.getSizeGuide()
+          ]);
           if (latestMsg) setAnnouncementText(latestMsg);
+          if (latestGuide) setSizeGuideData(latestGuide);
         } catch (err) {
           console.warn("[Realtime Announcement Refresh]:", err);
         }
@@ -1096,6 +1110,7 @@ export default function App() {
       <SizeChartModal 
         isOpen={isSizeChartOpen}
         onClose={() => setIsSizeChartOpen(false)}
+        guideData={sizeGuideData}
       />
 
       <ToastContainer 

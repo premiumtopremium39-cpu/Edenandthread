@@ -810,6 +810,42 @@ export const reviewService = {
 // ==============================================================================
 // 7. ANNOUNCEMENTS & BROADCAST SERVICE
 // ==============================================================================
+export const sizeGuideService = {
+  async getSizeGuide() {
+    if (!supabase) return null;
+    try {
+      const { data, error } = await supabase
+        .from('announcements')
+        .select('*')
+        .eq('id', 2)
+        .single();
+      if (error || !data?.message) return null;
+      return JSON.parse(data.message);
+    } catch {
+      return null;
+    }
+  },
+
+  async updateSizeGuide(guideObject) {
+    if (!supabase) return guideObject;
+    try {
+      const { data, error } = await supabase
+        .from('announcements')
+        .upsert({
+          id: 2,
+          message: JSON.stringify(guideObject),
+          active: true
+        })
+        .select()
+        .single();
+      if (!error && data?.message) return JSON.parse(data.message);
+    } catch (e) {
+      console.warn('Size guide save failed:', e);
+    }
+    return guideObject;
+  }
+};
+
 export const announcementService = {
   async getAnnouncement() {
     if (!supabase) return null;
