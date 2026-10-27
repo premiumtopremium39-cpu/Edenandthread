@@ -94,38 +94,6 @@ export default function OurStoryPage() {
             </p>
           </div>
         </div>
-
-        {/* Studio Locations */}
-        <div style={{ marginTop: '4rem', borderTop: '1px solid var(--border-light)', paddingTop: '3.5rem', textAlign: 'center' }}>
-          <span style={{ fontSize: '0.8rem', textTransform: 'uppercase', letterSpacing: '0.2em', color: 'var(--accent)', fontWeight: 600, display: 'block', marginBottom: '0.5rem' }}>
-            Flagship Studios
-          </span>
-          <h2 style={{ fontFamily: 'var(--font-display)', fontSize: '2rem', color: 'var(--green-dark)', fontWeight: 400, marginBottom: '2.5rem' }}>
-            Global Atelier Locations
-          </h2>
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '1.25rem' }} className="story-locations-grid">
-            {[
-              { city: "Chennai (HQ)", address: "No. 7, Pasumpon Nagar, Vedagiri St, Pammal, Chennai - 600075", phone: "+91 96771 27882", image: "/assets/brand_values.png", desc: "Flagship Studio & Headquarters" },
-              { city: "Milan", address: "Corso Como 10", image: "/assets/outerwear_blazer.png", desc: "Design Atelier & Salon" },
-              { city: "Paris", address: "Rue de Charonne", image: "/assets/mens_linen_editorial.png", desc: "Textile Archive" },
-              { city: "Tokyo", address: "Aoyama Minami-cho", image: "/assets/hero_banner_2.png", desc: "Concept Space" }
-            ].map((loc) => (
-              <div key={loc.city} style={{ backgroundColor: '#fff', border: '1px solid var(--border-light)', overflow: 'hidden', textAlign: 'left', transition: 'var(--transition-fast)' }} className="location-card">
-                <div style={{ height: '180px', overflow: 'hidden', position: 'relative' }}>
-                  <img src={loc.image} alt={`${loc.city} Atelier`} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
-                  <span style={{ position: 'absolute', top: '0.75rem', left: '0.75rem', backgroundColor: 'var(--glass-bg)', padding: '0.25rem 0.6rem', fontSize: '0.7rem', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.08em', backdropFilter: 'blur(8px)', border: '1px solid var(--border-light)' }}>
-                    {loc.city}
-                  </span>
-                </div>
-                <div style={{ padding: '1.25rem' }}>
-                  <h4 style={{ fontWeight: 600, fontSize: '0.95rem', color: 'var(--green-dark)', marginBottom: '0.25rem' }}>{loc.city}</h4>
-                  <p style={{ fontSize: '0.8rem', color: 'var(--text-primary)', fontWeight: 500 }}>{loc.address}</p>
-                  <p style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginTop: '0.35rem' }}>{loc.desc}</p>
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
       </div>
     </div>
   );
