@@ -226,10 +226,10 @@ router.post("/create-order", async (req, res) => {
 
     const razorpayOrderId = rzpOrder?.id || internalOrderId;
 
-    // 6. Persist order in Supabase (idempotency key stored in notes for 100% schema resilience)
+    // 6. Persist order in Supabase (upsert matches the pre-created atomic reservation row)
     const { error: dbErr } = await supabaseAdmin
       .from('orders')
-      .insert([{
+      .upsert([{
         order_id: internalOrderId,
         customer_name: shippingDetails.name,
         customer_email: shippingDetails.email,
@@ -250,7 +250,7 @@ router.post("/create-order", async (req, res) => {
           reservation_expires_at: reservationExpiresAt,
           applied_coupon: calculation.appliedCoupon
         }
-      }]);
+      }], { onConflict: 'order_id' });
 
     if (dbErr) {
       await releaseInventoryReservation({ orderId: internalOrderId, reason: 'db_insert_failed' });
