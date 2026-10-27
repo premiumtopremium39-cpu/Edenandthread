@@ -3,7 +3,8 @@ import dotenv from 'dotenv';
 
 dotenv.config();
 
-const rawUrl = (process.env.VITE_SUPABASE_URL || process.env.SUPABASE_URL || '').trim();
+const CANONICAL_SUPABASE_URL = 'https://fkkfzmydaascwthtonsi.supabase.co';
+const rawUrl = (process.env.VITE_SUPABASE_URL || process.env.SUPABASE_URL || '').trim() || CANONICAL_SUPABASE_URL;
 const supabaseUrl = rawUrl.replace(/\/rest\/v1\/?$/, '').replace(/\/+$/, '');
 const supabaseServiceKey = (process.env.SUPABASE_SERVICE_ROLE_KEY || '').trim();
 
