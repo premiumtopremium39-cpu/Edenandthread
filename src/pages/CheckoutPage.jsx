@@ -190,7 +190,8 @@ export default function CheckoutPage({ cartItems, onOrderComplete, showToast, us
       };
 
       const orderData = await callPaymentApi('create-order', orderPayload);
-      const activeKeyId = orderData?.keyId || 'rzp_test_TPWevL7fL58oyF';
+      const activeKeyId = orderData?.keyId || import.meta.env.VITE_RAZORPAY_KEY_ID || 'rzp_test_TrmfyllGcVE3Zv';
+      const activeConfigId = orderData?.configId || import.meta.env.VITE_RAZORPAY_CONFIG_ID || 'config_Tsrko6CbrIPYEM';
       const orderId = orderData?.order?.id || `order_${Date.now()}_${Math.random().toString(36).substring(2, 9)}`;
       const amountInPaise = orderData?.order?.amount || Math.round(finalTotal * 100);
 
@@ -204,9 +205,10 @@ export default function CheckoutPage({ cartItems, onOrderComplete, showToast, us
         return;
       }
 
-      // Step 2: Configure Razorpay Checkout Options
+      // Step 2: Configure Razorpay Checkout Options with custom Payment Options config_id
       const options = {
         key: activeKeyId,
+        config_id: activeConfigId,
         amount: amountInPaise,
         currency: 'INR',
         name: 'EDEN & THREAD',

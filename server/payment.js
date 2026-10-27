@@ -9,9 +9,10 @@ dotenv.config();
 const router = express.Router();
 
 const getRazorpayKeys = () => {
-  const keyId = (process.env.RAZORPAY_KEY_ID || "").trim() || "rzp_test_5173EdenThreads";
-  const keySecret = (process.env.RAZORPAY_KEY_SECRET || "").trim() || "secret_test_eden_threads_luxury";
-  return { keyId, keySecret };
+  const keyId = (process.env.RAZORPAY_KEY_ID || "").trim() || "rzp_test_TrmfyllGcVE3Zv";
+  const keySecret = (process.env.RAZORPAY_KEY_SECRET || "").trim() || "a1iU8Gd6Ff2UTPBtAZ3H9iyg";
+  const configId = (process.env.RAZORPAY_CONFIG_ID || "").trim() || "config_Tsrko6CbrIPYEM";
+  return { keyId, keySecret, configId };
 };
 
 const getRazorpayClient = () => {
@@ -31,9 +32,10 @@ const getRazorpayClient = () => {
  * Exposes the active public Razorpay Key ID and test mode status to frontend
  */
 router.get("/config", (req, res) => {
-  const { keyId } = getRazorpayKeys();
+  const { keyId, configId } = getRazorpayKeys();
   res.json({
     keyId: keyId,
+    configId: configId,
     currency: "INR",
     isTestMode: true,
     brandName: "EDEN & THREAD",
@@ -102,6 +104,7 @@ router.post("/create-order", async (req, res) => {
       success: true,
       order,
       keyId: keyId,
+      configId: (process.env.RAZORPAY_CONFIG_ID || "").trim() || "config_Tsrko6CbrIPYEM",
       currency: "INR",
       amountRupees: amount
     });
