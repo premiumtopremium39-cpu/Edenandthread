@@ -91,11 +91,12 @@ router.post("/create-order", async (req, res) => {
 
     // 1. Idempotency Check: if idempotencyKey supplied, return existing active order
     if (idempotencyKey && typeof idempotencyKey === 'string') {
-      const { data: existingOrder } = await supabaseAdmin
+      const { data: existingOrders } = await supabaseAdmin
         .from('orders')
         .select('*')
-        .eq('idempotency_key', idempotencyKey)
-        .maybeSingle();
+        .eq('payment_status', 'pending');
+
+      const existingOrder = (existingOrders || []).find(o => o.notes?.idempotency_key === idempotencyKey);
 
       if (existingOrder) {
         const isStillActive = existingOrder.payment_status === 'pending' &&
@@ -152,7 +153,7 @@ router.post("/create-order", async (req, res) => {
 
     // 4. Handle Cash on Delivery (COD) Flow
     if (paymentMethod === "cod") {
-      const { data: codOrder, error: codErr } = await supabaseAdmin
+      const { error: codErr } = await supabaseAdmin
         .from('orders')
         .insert([{
           order_id: internalOrderId,
@@ -168,16 +169,14 @@ router.post("/create-order", async (req, res) => {
           payment_id: 'PAYABLE_ON_DELIVERY',
           payment_status: 'pending',
           order_status: 'Placed',
-          idempotency_key: idempotencyKey || null,
           notes: {
             ...notes,
+            idempotency_key: idempotencyKey || null,
             payment_method: 'cod',
             reservation_expires_at: reservationExpiresAt,
             applied_coupon: calculation.appliedCoupon
           }
-        }])
-        .select()
-        .single();
+        }]);
 
       if (codErr) {
         await releaseInventoryReservation({ orderId: internalOrderId, reason: 'order_creation_failed' });
@@ -227,7 +226,7 @@ router.post("/create-order", async (req, res) => {
 
     const razorpayOrderId = rzpOrder?.id || internalOrderId;
 
-    // 6. Persist order in Supabase
+    // 6. Persist order in Supabase (idempotency key stored in notes for 100% schema resilience)
     const { error: dbErr } = await supabaseAdmin
       .from('orders')
       .insert([{
@@ -244,9 +243,9 @@ router.post("/create-order", async (req, res) => {
         payment_id: razorpayOrderId,
         payment_status: 'pending',
         order_status: 'Placed',
-        idempotency_key: idempotencyKey || null,
         notes: {
           ...notes,
+          idempotency_key: idempotencyKey || null,
           razorpay_order_id: razorpayOrderId,
           reservation_expires_at: reservationExpiresAt,
           applied_coupon: calculation.appliedCoupon
