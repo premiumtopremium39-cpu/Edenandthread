@@ -207,6 +207,7 @@ export const productService = {
               description: product.description || '',
               sizes: typeof product.sizes === 'string' ? product.sizes.split(',').map(s => s.trim()) : (product.sizes || ['S', 'M', 'L', 'XL']),
               colors: Array.isArray(product.colors) ? product.colors : [],
+              size_guide: product.size_guide || null,
               is_active: true,
             },
           ])
@@ -242,6 +243,7 @@ export const productService = {
       sanitized.sizes = typeof updates.sizes === 'string' ? updates.sizes.split(',').map(s => s.trim()) : updates.sizes;
     }
     if (updates.colors !== undefined) sanitized.colors = updates.colors;
+    if (updates.size_guide !== undefined) sanitized.size_guide = updates.size_guide;
     if (updates.is_active !== undefined) sanitized.is_active = updates.is_active;
 
     if (supabase) {

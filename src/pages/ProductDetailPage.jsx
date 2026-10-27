@@ -505,13 +505,19 @@ export default function ProductDetailPage({
 
               <div style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', lineHeight: 1.6 }}>
                 {activeTab === 'details' && (
-                  <p>Designed for a relaxed resort fit. Finished with genuine mother-of-pearl buttons and clean French seams. Fits true to size.</p>
+                  <p style={{ whiteSpace: 'pre-line' }}>
+                    {product.size_guide?.details_fit || product.details_fit || 'Designed for a relaxed resort fit. Finished with genuine mother-of-pearl buttons and clean French seams. Fits true to size.'}
+                  </p>
                 )}
                 {activeTab === 'care' && (
-                  <p>100% traceably sourced organic European flax. Pre-washed with volcanic pumice. Machine wash cold on gentle cycle and hang dry in shade.</p>
+                  <p style={{ whiteSpace: 'pre-line' }}>
+                    {product.size_guide?.materials_care || product.materials_care || '100% traceably sourced organic European flax. Pre-washed with volcanic pumice. Machine wash cold on gentle cycle and hang dry in shade.'}
+                  </p>
                 )}
                 {activeTab === 'shipping' && (
-                  <p>Complimentary worldwide express shipping on orders over ₹1,500. Duties and local taxes covered. 30-day returns accepted in original condition.</p>
+                  <p style={{ whiteSpace: 'pre-line' }}>
+                    {product.size_guide?.shipping_returns || product.shipping_returns || 'Complimentary worldwide express shipping on orders over ₹1,500. Duties and local taxes covered. 30-day returns accepted in original condition.'}
+                  </p>
                 )}
               </div>
             </div>
