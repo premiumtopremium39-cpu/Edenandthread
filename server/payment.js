@@ -51,7 +51,7 @@ router.get("/config", (req, res) => {
 router.post("/create-order", async (req, res) => {
   try {
     const { amount, currency = "INR", receipt, notes = {} } = req.body;
-    const { keyId } = getRazorpayKeys();
+    const { keyId, configId } = getRazorpayKeys();
     const razorpayClient = getRazorpayClient();
 
     if (!amount || isNaN(amount) || amount <= 0) {
@@ -66,6 +66,7 @@ router.post("/create-order", async (req, res) => {
       amount: amountInPaise,
       currency,
       receipt: receiptId,
+      checkout_config_id: configId || undefined,
       notes: {
         brand: "EDEN & THREAD",
         ...notes
