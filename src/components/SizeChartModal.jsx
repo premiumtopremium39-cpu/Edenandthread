@@ -10,10 +10,19 @@ const DEFAULT_ROWS = [
 export default function SizeChartModal({ isOpen, onClose, guideData }) {
   if (!isOpen) return null;
 
-  const title = guideData?.title || 'Linen Shirt Size Guide';
-  const subtitle = guideData?.subtitle || 'Measurements are shown in inches. Fits may vary slightly depending on shirt style.';
-  const rows = (guideData?.rows && guideData.rows.length > 0) ? guideData.rows : DEFAULT_ROWS;
-  const fitNote = guideData?.fitNote || 'If you are between sizes, we recommend sizing up for a relaxed resort fit or choosing your normal size for a structured classic look.';
+  let parsedGuide = guideData;
+  if (typeof guideData === 'string') {
+    try {
+      parsedGuide = JSON.parse(guideData);
+    } catch {
+      parsedGuide = null;
+    }
+  }
+
+  const title = parsedGuide?.title || 'Linen Shirt Size Guide';
+  const subtitle = parsedGuide?.subtitle || 'Measurements are shown in inches. Fits may vary slightly depending on shirt style.';
+  const rows = (parsedGuide?.rows && parsedGuide.rows.length > 0) ? parsedGuide.rows : DEFAULT_ROWS;
+  const fitNote = parsedGuide?.fitNote || 'If you are between sizes, we recommend sizing up for a relaxed resort fit or choosing your normal size for a structured classic look.';
 
   return (
     <div className="modal-overlay active" id="sizeChartOverlay" onClick={(e) => {

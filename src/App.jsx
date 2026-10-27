@@ -311,6 +311,7 @@ export default function App() {
   const [isWishlistOpen, setIsWishlistOpen] = useState(false);
   const [isSearchOpen, setIsSearchOpen] = useState(false);
   const [isSizeChartOpen, setIsSizeChartOpen] = useState(false);
+  const [activeProductSizeGuide, setActiveProductSizeGuide] = useState(null);
   const [sizeGuideData, setSizeGuideData] = useState(() => {
     const saved = localStorage.getItem('eden_threads_sizeguide');
     if (saved) {
@@ -994,7 +995,10 @@ export default function App() {
                   product={currentProd}
                   allProducts={products}
                   onAddToBag={handleAddToCart}
-                  onSizeChartOpen={() => setIsSizeChartOpen(true)}
+                  onSizeChartOpen={() => {
+                    setActiveProductSizeGuide(currentProd?.size_guide || null);
+                    setIsSizeChartOpen(true);
+                  }}
                   onProductClick={(id) => {
                     window.location.hash = `#product/${id}`;
                   }}
@@ -1098,7 +1102,10 @@ export default function App() {
         product={selectedQuickViewProduct}
         isOpen={quickViewProductId !== null}
         onClose={() => setQuickViewProductId(null)}
-        onSizeChartOpen={() => setIsSizeChartOpen(true)}
+        onSizeChartOpen={() => {
+          setActiveProductSizeGuide(selectedQuickViewProduct?.size_guide || null);
+          setIsSizeChartOpen(true);
+        }}
         onAddToBag={(productId, color, size) => {
           handleAddToCart(productId, color, size, 1);
           showToast(`<i class='fa-solid fa-bag-shopping'></i> Added ${selectedQuickViewProduct?.title} to bag.`);
@@ -1109,8 +1116,11 @@ export default function App() {
 
       <SizeChartModal 
         isOpen={isSizeChartOpen}
-        onClose={() => setIsSizeChartOpen(false)}
-        guideData={sizeGuideData}
+        onClose={() => {
+          setIsSizeChartOpen(false);
+          setActiveProductSizeGuide(null);
+        }}
+        guideData={activeProductSizeGuide || sizeGuideData}
       />
 
       <ToastContainer 

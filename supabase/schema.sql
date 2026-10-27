@@ -40,10 +40,16 @@ CREATE TABLE IF NOT EXISTS public.products (
     description TEXT,
     sizes JSONB NOT NULL DEFAULT '["S", "M", "L", "XL"]'::jsonb,
     colors JSONB NOT NULL DEFAULT '[]'::jsonb,
+    views JSONB NOT NULL DEFAULT '[]'::jsonb,
+    size_guide JSONB,
     is_active BOOLEAN NOT NULL DEFAULT TRUE,
     created_at TIMESTAMPTZ NOT NULL DEFAULT TIMEZONE('utc'::text, NOW()),
     updated_at TIMESTAMPTZ NOT NULL DEFAULT TIMEZONE('utc'::text, NOW())
 );
+
+-- Ensure columns exist if table was already created earlier:
+ALTER TABLE public.products ADD COLUMN IF NOT EXISTS views JSONB NOT NULL DEFAULT '[]'::jsonb;
+ALTER TABLE public.products ADD COLUMN IF NOT EXISTS size_guide JSONB;
 
 -- ------------------------------------------------------------------------------
 -- 2.3 ORDERS (Customer Orders, Logistics, Shipping, Fulfillment)
