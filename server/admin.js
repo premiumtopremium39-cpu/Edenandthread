@@ -5,12 +5,45 @@ import { supabaseAdmin } from './supabase.js';
 
 const router = express.Router();
 
-// Helper to check if supabaseAdmin is available
-const checkAdmin = (req, res, next) => {
+// Helper to verify authenticated Supabase admin user
+const checkAdmin = async (req, res, next) => {
   if (!supabaseAdmin) {
     return res.status(500).json({ error: 'Supabase service role admin is not configured on server' });
   }
-  next();
+
+  try {
+    const authHeader = req.headers.authorization;
+    if (!authHeader || !authHeader.startsWith('Bearer ')) {
+      return res.status(401).json({ error: 'Authentication required for administrative operations' });
+    }
+
+    const token = authHeader.split(' ')[1];
+    const { data: { user }, error: authErr } = await supabaseAdmin.auth.getUser(token);
+
+    if (authErr || !user) {
+      return res.status(401).json({ error: 'Invalid or expired administrative credentials' });
+    }
+
+    // Check if user has admin role in profiles or known admin email
+    const { data: profile } = await supabaseAdmin
+      .from('profiles')
+      .select('role')
+      .eq('id', user.id)
+      .maybeSingle();
+
+    const isAdmin = profile?.role === 'admin' ||
+      user.email === 'admin@mail.com' ||
+      user.email === 'admin@edenthreads.luxury';
+
+    if (!isAdmin) {
+      return res.status(403).json({ error: 'Access denied: Administrative privileges required' });
+    }
+
+    req.adminUser = user;
+    next();
+  } catch (err) {
+    return res.status(500).json({ error: `Authentication error: ${err.message}` });
+  }
 };
 
 // 1. Products CRUD

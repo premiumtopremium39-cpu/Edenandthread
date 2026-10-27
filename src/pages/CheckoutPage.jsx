@@ -1,14 +1,20 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { handleImageError, DEFAULT_FALLBACK_IMAGE } from '../utils/productViews';
 
 export default function CheckoutPage({ cartItems, onOrderComplete, showToast, user, promoCodes = [] }) {
   const [couponCode, setCouponCode] = useState('');
-  const [appliedPromo, setAppliedPromo] = useState(null); // { code, type, value }
-  const [paymentMethod, setPaymentMethod] = useState('razorpay'); // 'razorpay' | 'card' | 'cod'
+  const [appliedPromo, setAppliedPromo] = useState(null); // { code, type, value, discountAmount }
+  const [paymentMethod, setPaymentMethod] = useState('razorpay'); // 'razorpay' | 'cod'
   const [isProcessing, setIsProcessing] = useState(false);
   const [processingStatus, setProcessingStatus] = useState('');
   const [copiedField, setCopiedField] = useState(null);
   const [confirmedOrder, setConfirmedOrder] = useState(null);
+
+  // FCFS Reservation & Countdown State
+  const [reservationExpiresAt, setReservationExpiresAt] = useState(null);
+  const [timeRemainingSeconds, setTimeRemainingSeconds] = useState(null);
+  const [reservationExpired, setReservationExpired] = useState(false);
+  const idempotencyKeyRef = useRef(`idemp_${Date.now()}_${Math.random().toString(36).substring(2, 9)}`);
 
   // Default available promo codes fallback
   const defaultPromos = [
@@ -19,14 +25,6 @@ export default function CheckoutPage({ cartItems, onOrderComplete, showToast, us
 
   const activePromoList = promoCodes && promoCodes.length > 0 ? promoCodes : defaultPromos;
 
-  // Direct Card form state (for guaranteed card simulation without merchant restrictions)
-  const [cardData, setCardData] = useState({
-    cardNumber: '4012 0000 0000 0002',
-    cardName: 'Alex Mercer',
-    cardExp: '12/28',
-    cardCvv: '123'
-  });
-  
   // Shipping details state
   const [formData, setFormData] = useState({
     name: '',
@@ -49,10 +47,10 @@ export default function CheckoutPage({ cartItems, onOrderComplete, showToast, us
     }
   }, [user]);
 
+  // Client preview calculation (Authoritative calculation will always be executed by server)
   const subtotal = cartItems.reduce((acc, item) => acc + (item.price * item.qty), 0);
   const shipping = subtotal >= 1500 ? 0 : (cartItems.length > 0 ? 150 : 0);
   
-  // Calculate discount based on new promo logic
   let discountAmount = 0;
   if (appliedPromo) {
     if (appliedPromo.type === 'percent') {
@@ -62,7 +60,28 @@ export default function CheckoutPage({ cartItems, onOrderComplete, showToast, us
     }
   }
   
-  const finalTotal = subtotal - discountAmount + shipping;
+  const finalTotal = Math.max(0, subtotal - discountAmount + shipping);
+
+  // FCFS Reservation Countdown Timer
+  useEffect(() => {
+    if (!reservationExpiresAt) return;
+
+    const interval = setInterval(() => {
+      const now = Date.now();
+      const expiry = new Date(reservationExpiresAt).getTime();
+      const diff = Math.max(0, Math.floor((expiry - now) / 1000));
+
+      setTimeRemainingSeconds(diff);
+
+      if (diff <= 0) {
+        setReservationExpired(true);
+        clearInterval(interval);
+        showToast('<i class="fa-solid fa-clock-rotate-left"></i> Your 10-minute stock reservation expired. Please checkout again to secure inventory.');
+      }
+    }, 1000);
+
+    return () => clearInterval(interval);
+  }, [reservationExpiresAt]);
 
   const handleApplyCoupon = (e) => {
     e.preventDefault();
@@ -85,11 +104,6 @@ export default function CheckoutPage({ cartItems, onOrderComplete, showToast, us
     setFormData(prev => ({ ...prev, [name]: value }));
   };
 
-  const handleCardInputChange = (e) => {
-    const { name, value } = e.target;
-    setCardData(prev => ({ ...prev, [name]: value }));
-  };
-
   const copyToClipboard = (text, label) => {
     navigator.clipboard.writeText(text);
     setCopiedField(label);
@@ -97,38 +111,33 @@ export default function CheckoutPage({ cartItems, onOrderComplete, showToast, us
     setTimeout(() => setCopiedField(null), 2000);
   };
 
-  // Helper to safely call payment API with multi-port and relative proxy fallbacks
+  // Helper to safely call backend payment API
   const callPaymentApi = async (endpoint, data) => {
-    const backendTunnelUrl = "https://honest-trains-hear.loca.lt";
     const urlsToTry = [
       `/api/payment/${endpoint}`,
-      `${backendTunnelUrl}/api/payment/${endpoint}`,
-      `http://localhost:5000/api/payment/${endpoint}`,
-      `http://localhost:5005/api/payment/${endpoint}`
+      `http://localhost:5000/api/payment/${endpoint}`
     ];
 
     for (const url of urlsToTry) {
       try {
         const res = await fetch(url, {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
+          headers: { 
+            'Content-Type': 'application/json',
+            'Accept': 'application/json'
+          },
           body: JSON.stringify(data)
         });
-        const contentType = res.headers.get('content-type') || '';
-        if (contentType.includes('application/json')) {
-          const json = await res.json();
-          if (res.ok && json.success !== false) {
-            return json;
-          }
-        }
+        const json = await res.json();
+        return { ok: res.ok, status: res.status, data: json };
       } catch {
-        // Silently try next fallback URL
+        // Continue to fallback URL
       }
     }
-    return null;
+    return { ok: false, status: 500, data: { message: 'Network connection to payment gateway failed.' } };
   };
 
-  // Helper to load Razorpay SDK dynamically if not yet ready
+  // Helper to load Razorpay SDK dynamically
   const loadRazorpaySDK = () => {
     return new Promise((resolve) => {
       if (window.Razorpay) {
@@ -143,19 +152,19 @@ export default function CheckoutPage({ cartItems, onOrderComplete, showToast, us
     });
   };
 
-  // Form submit handler router
+  // Primary checkout submission handler
   const handleSubmitPayment = (e) => {
     e.preventDefault();
+    if (isProcessing) return; // Prevent double clicks
+
     if (paymentMethod === 'razorpay') {
       handleRazorpayPayment();
-    } else if (paymentMethod === 'card') {
-      handleDirectCardPayment();
     } else if (paymentMethod === 'cod') {
       handleCodPayment();
     }
   };
 
-  // 1. Official Razorpay SDK Checkout Launch (UPI & NetBanking & Gateway)
+  // 1. Official Secure Razorpay Checkout with FCFS Atomic Reservation
   const handleRazorpayPayment = async () => {
     if (!user) {
       showToast('<i class="fa-solid fa-triangle-exclamation"></i> Authentication required.');
@@ -173,48 +182,70 @@ export default function CheckoutPage({ cartItems, onOrderComplete, showToast, us
     }
 
     setIsProcessing(true);
-    setProcessingStatus('Connecting to Razorpay gateway...');
+    setProcessingStatus('Securing FCFS inventory reservation...');
 
     try {
-      // Step 1: Create Order on Backend or Sandbox Generator
+      // Step 1: Request authoritative server order creation & FCFS reservation
       const orderPayload = {
-        amount: finalTotal,
-        currency: 'INR',
-        receipt: `eden_rcpt_${Date.now()}`,
-        notes: {
-          customerName: formData.name,
-          customerEmail: formData.email,
-          itemCount: cartItems.length,
-          deliveryCity: formData.city
-        }
+        items: cartItems.map(item => ({
+          productId: item.id,
+          quantity: item.qty,
+          size: item.size || 'M',
+          color: item.color || 'Default'
+        })),
+        couponCode: appliedPromo?.code || null,
+        shippingDetails: { ...formData },
+        paymentMethod: 'razorpay',
+        idempotencyKey: idempotencyKeyRef.current
       };
 
-      const orderData = await callPaymentApi('create-order', orderPayload);
-      const activeKeyId = orderData?.keyId || import.meta.env.VITE_RAZORPAY_KEY_ID || 'rzp_test_TrmfyllGcVE3Zv';
-      const activeConfigId = orderData?.configId || import.meta.env.VITE_RAZORPAY_CONFIG_ID || 'config_Tsrko6CbrIPYEM';
-      const orderId = orderData?.order?.id || `order_${Date.now()}_${Math.random().toString(36).substring(2, 9)}`;
-      const amountInPaise = orderData?.order?.amount || Math.round(finalTotal * 100);
+      const createRes = await callPaymentApi('create-order', orderPayload);
 
-      setProcessingStatus('Loading Razorpay payment modal...');
-      const isSdkLoaded = await loadRazorpaySDK();
+      if (!createRes.ok || !createRes.data?.success) {
+        setIsProcessing(false);
+        setProcessingStatus('');
 
-      if (!isSdkLoaded || !window.Razorpay) {
-        // If external CDN is unavailable or blocked, execute simulated sandbox flow
-        console.warn('Razorpay SDK script not loaded from CDN, running test sandbox flow');
-        await handleInstantSandboxTest(orderId);
+        // 409 Conflict: Inventory exhausted or race condition lost
+        if (createRes.status === 409) {
+          showToast(`<i class="fa-solid fa-circle-exclamation"></i> Inventory Update: ${createRes.data?.message || 'Item sold out'}`);
+        } else {
+          showToast(`<i class="fa-solid fa-triangle-exclamation"></i> ${createRes.data?.message || 'Checkout failed'}`);
+        }
         return;
       }
 
-      // Step 2: Configure Razorpay Checkout Options with custom Payment Options config_id and method filters
+      const orderData = createRes.data;
+      const serverOrderId = orderData.orderId;
+      const razorpayOrderId = orderData.razorpayOrderId;
+      const authoritativePaise = orderData.amountInPaise;
+      const activeKeyId = orderData.keyId || import.meta.env.VITE_RAZORPAY_KEY_ID || 'rzp_test_TrmfyllGcVE3Zv';
+      const activeConfigId = orderData.configId || import.meta.env.VITE_RAZORPAY_CONFIG_ID || 'config_Tsrko6CbrIPYEM';
+
+      // Set reservation countdown based on authoritative server timestamp
+      if (orderData.reservationExpiresAt) {
+        setReservationExpiresAt(orderData.reservationExpiresAt);
+        setReservationExpired(false);
+      }
+
+      setProcessingStatus('Loading Razorpay secure payment modal...');
+      const isSdkLoaded = await loadRazorpaySDK();
+
+      if (!isSdkLoaded || !window.Razorpay) {
+        setIsProcessing(false);
+        showToast('<i class="fa-solid fa-triangle-exclamation"></i> Razorpay checkout SDK could not be loaded. Please check your internet connection.');
+        return;
+      }
+
+      // Step 2: Configure Razorpay Checkout Options
       const options = {
         key: activeKeyId,
         config_id: activeConfigId,
-        amount: amountInPaise,
+        amount: authoritativePaise,
         currency: 'INR',
         name: 'EDEN & THREAD',
-        description: `Order ${orderId} • Luxury Artisanal Linen`,
+        description: `Order ${serverOrderId} • Luxury Artisanal Linen`,
         image: 'https://images.unsplash.com/photo-1490481651871-ab68de25d43d?w=128&auto=format&fit=crop&q=80',
-        order_id: orderData?.order?.id ? orderId : undefined,
+        order_id: razorpayOrderId,
         config: {
           display: {
             hide: [
@@ -227,29 +258,34 @@ export default function CheckoutPage({ cartItems, onOrderComplete, showToast, us
           }
         },
         handler: async function (response) {
-          setProcessingStatus('Verifying payment signature with server...');
+          setProcessingStatus('Verifying cryptographic payment signature with server...');
           try {
             const verifyPayload = {
-              razorpay_order_id: response.razorpay_order_id || orderId,
-              razorpay_payment_id: response.razorpay_payment_id || `pay_test_${Date.now()}`,
-              razorpay_signature: response.razorpay_signature || 'test_sig'
+              order_id: serverOrderId,
+              razorpay_order_id: response.razorpay_order_id || razorpayOrderId,
+              razorpay_payment_id: response.razorpay_payment_id,
+              razorpay_signature: response.razorpay_signature
             };
 
-            const verifyData = await callPaymentApi('verify-payment', verifyPayload);
+            const verifyRes = await callPaymentApi('verify-payment', verifyPayload);
+
+            if (!verifyRes.ok || !verifyRes.data?.verified) {
+              throw new Error(verifyRes.data?.message || 'Signature verification rejected by server.');
+            }
 
             const orderRecord = {
-              orderId: response.razorpay_order_id || orderId,
-              paymentId: response.razorpay_payment_id || verifyPayload.razorpay_payment_id,
-              amount: finalTotal,
-              items: [...cartItems],
+              orderId: serverOrderId,
+              paymentId: response.razorpay_payment_id,
+              amount: orderData.amount,
+              items: [...(orderData.items || cartItems)],
               shipping: { ...formData },
               timestamp: new Date().toLocaleString('en-IN', { dateStyle: 'medium', timeStyle: 'short' }),
-              status: verifyData?.verified ? 'Paid & Signature Verified (Razorpay)' : 'Paid (Razorpay Test Mode)'
+              status: 'Paid & Signature Verified (Razorpay)'
             };
 
             setConfirmedOrder(orderRecord);
             setIsProcessing(false);
-            showToast('<i class="fa-solid fa-circle-check"></i> Payment Verified! Order Placed.');
+            showToast('<i class="fa-solid fa-circle-check"></i> Payment Cryptographically Verified! Order Placed.');
             if (onOrderComplete) onOrderComplete(orderRecord);
           } catch (err) {
             console.error('Verification error:', err);
@@ -273,7 +309,7 @@ export default function CheckoutPage({ cartItems, onOrderComplete, showToast, us
           ondismiss: function () {
             setIsProcessing(false);
             setProcessingStatus('');
-            showToast('<i class="fa-solid fa-circle-info"></i> Razorpay payment modal closed.');
+            showToast('<i class="fa-solid fa-circle-info"></i> Checkout modal closed. Your 10-minute stock reservation is still active.');
           }
         }
       };
@@ -289,137 +325,63 @@ export default function CheckoutPage({ cartItems, onOrderComplete, showToast, us
       razorpayModal.open();
     } catch (err) {
       console.error('Payment checkout error:', err);
-      // Fallback gracefully to instant sandbox test so testing is never blocked
-      await handleInstantSandboxTest();
+      setIsProcessing(false);
+      setProcessingStatus('');
+      showToast(`<i class="fa-solid fa-triangle-exclamation"></i> Checkout Error: ${err.message}`);
     }
   };
 
-  // 2. Direct Card Payment Flow (Guaranteed 100% card test approval)
-  const handleDirectCardPayment = async () => {
+  // 2. Cash on Delivery Flow with FCFS Reservation
+  const handleCodPayment = async () => {
     if (!formData.name || !formData.email || !formData.address || !formData.city || !formData.zip) {
       showToast('<i class="fa-solid fa-triangle-exclamation"></i> Please fill in all shipping details.');
       return;
     }
 
-    if (!cardData.cardNumber || !cardData.cardExp || !cardData.cardCvv) {
-      showToast('<i class="fa-solid fa-triangle-exclamation"></i> Please enter card details.');
-      return;
-    }
-
     setIsProcessing(true);
-    setProcessingStatus('Authorizing test card with bank...');
+    setProcessingStatus('Reserving inventory for Cash on Delivery...');
 
     try {
       const orderPayload = {
-        amount: finalTotal,
-        currency: 'INR',
-        receipt: `eden_card_${Date.now()}`
-      };
-      const orderData = await callPaymentApi('create-order', orderPayload);
-      const orderId = orderData?.order?.id || `order_card_${Date.now()}`;
-      const paymentId = `pay_card_${Math.random().toString(36).substring(2, 11)}`;
-
-      // Verify on backend
-      const verifyData = await callPaymentApi('verify-payment', {
-        razorpay_order_id: orderId,
-        razorpay_payment_id: paymentId,
-        razorpay_signature: 'test_sandbox_signature'
-      });
-
-      const orderRecord = {
-        orderId: orderId,
-        paymentId: paymentId,
-        amount: finalTotal,
-        items: [...cartItems],
-        shipping: { ...formData },
-        timestamp: new Date().toLocaleString('en-IN', { dateStyle: 'medium', timeStyle: 'short' }),
-        status: verifyData?.verified ? `Paid via Card (${cardData.cardNumber.slice(-4)}) - Test Verified` : 'Paid (Test Card Gateway)'
+        items: cartItems.map(item => ({
+          productId: item.id,
+          quantity: item.qty,
+          size: item.size || 'M',
+          color: item.color || 'Default'
+        })),
+        couponCode: appliedPromo?.code || null,
+        shippingDetails: { ...formData },
+        paymentMethod: 'cod',
+        idempotencyKey: idempotencyKeyRef.current
       };
 
-      setTimeout(() => {
-        setConfirmedOrder(orderRecord);
+      const createRes = await callPaymentApi('create-order', orderPayload);
+
+      if (!createRes.ok || !createRes.data?.success) {
         setIsProcessing(false);
         setProcessingStatus('');
-        showToast('<i class="fa-solid fa-circle-check"></i> Card Payment Approved! Order Placed.');
-        if (onOrderComplete) onOrderComplete(orderRecord);
-      }, 900);
-    } catch (err) {
-      console.error('Card payment error:', err);
-      setIsProcessing(false);
-      setProcessingStatus('');
-      showToast(`<i class="fa-solid fa-triangle-exclamation"></i> Error: ${err.message}`);
-    }
-  };
-
-  // 3. Cash on Delivery Flow
-  const handleCodPayment = () => {
-    if (!formData.name || !formData.email || !formData.address || !formData.city || !formData.zip) {
-      showToast('<i class="fa-solid fa-triangle-exclamation"></i> Please fill in all shipping details.');
-      return;
-    }
-
-    const orderRecord = {
-      orderId: `order_cod_${Date.now()}`,
-      paymentId: 'PAYABLE_ON_DELIVERY',
-      amount: finalTotal,
-      items: [...cartItems],
-      shipping: { ...formData },
-      timestamp: new Date().toLocaleString('en-IN', { dateStyle: 'medium', timeStyle: 'short' }),
-      status: 'Pending Payment (Cash on Delivery)'
-    };
-
-    setConfirmedOrder(orderRecord);
-    showToast('<i class="fa-solid fa-circle-check"></i> Order Placed with Cash on Delivery!');
-    if (onOrderComplete) onOrderComplete(orderRecord);
-  };
-
-  // 4. Instant Sandbox Test Mode Flow (One-click Rapid Testing)
-  const handleInstantSandboxTest = async (existingOrderId = null) => {
-    setIsProcessing(true);
-    setProcessingStatus('Processing simulated Razorpay test payment...');
-
-    try {
-      let orderId = existingOrderId;
-      if (!orderId) {
-        const orderData = await callPaymentApi('create-order', {
-          amount: finalTotal,
-          currency: 'INR',
-          receipt: `eden_test_${Date.now()}`
-        });
-        orderId = orderData?.order?.id || `order_test_${Date.now()}`;
+        showToast(`<i class="fa-solid fa-triangle-exclamation"></i> ${createRes.data?.message || 'Failed to place COD order'}`);
+        return;
       }
 
-      const testPaymentId = `pay_test_${Math.random().toString(36).substring(2, 12)}`;
-
-      // Verify on backend
-      const verifyData = await callPaymentApi('verify-payment', {
-        razorpay_order_id: orderId,
-        razorpay_payment_id: testPaymentId,
-        razorpay_signature: 'test_sandbox_signature'
-      });
-
+      const orderData = createRes.data;
       const orderRecord = {
-        orderId: orderId,
-        paymentId: testPaymentId,
-        amount: finalTotal,
+        orderId: orderData.orderId,
+        paymentId: 'PAYABLE_ON_DELIVERY',
+        amount: orderData.amount,
         items: [...cartItems],
         shipping: { ...formData },
         timestamp: new Date().toLocaleString('en-IN', { dateStyle: 'medium', timeStyle: 'short' }),
-        status: verifyData?.verified ? 'Paid & Verified (Sandbox Test)' : 'Paid (Instant Razorpay Sandbox)'
+        status: 'Pending Payment (Cash on Delivery - Reserved)'
       };
 
-      setTimeout(() => {
-        setConfirmedOrder(orderRecord);
-        setIsProcessing(false);
-        setProcessingStatus('');
-        showToast('<i class="fa-solid fa-circle-check"></i> Test Payment Succeeded!');
-        if (onOrderComplete) onOrderComplete(orderRecord);
-      }, 700);
-    } catch (err) {
-      console.error('Instant test error:', err);
+      setConfirmedOrder(orderRecord);
       setIsProcessing(false);
-      setProcessingStatus('');
-      showToast(`<i class="fa-solid fa-triangle-exclamation"></i> Error: ${err.message}`);
+      showToast('<i class="fa-solid fa-circle-check"></i> Order Placed with Cash on Delivery! Stock Reserved.');
+      if (onOrderComplete) onOrderComplete(orderRecord);
+    } catch (err) {
+      setIsProcessing(false);
+      showToast(`<i class="fa-solid fa-triangle-exclamation"></i> ${err.message}`);
     }
   };
 
@@ -428,82 +390,50 @@ export default function CheckoutPage({ cartItems, onOrderComplete, showToast, us
     window.location.hash = "#login";
   };
 
-  // Auth Wall Render
-  if (!user) {
-    return (
-      <div style={{ paddingTop: '110px', paddingBottom: '80px', display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: '60vh' }}>
-        <div style={{ width: '100%', maxWidth: '450px', backgroundColor: 'var(--bg-secondary)', border: '1px solid var(--border-light)', padding: '3rem 2.5rem', textAlign: 'center' }}>
-          <i className="fa-solid fa-lock" style={{ fontSize: '2.5rem', color: 'var(--accent)', marginBottom: '1.5rem' }}></i>
-          <h2 style={{ fontFamily: 'var(--font-display)', fontSize: '1.75rem', fontWeight: 400, color: 'var(--green-dark)', marginBottom: '1rem' }}>Secure Checkout</h2>
-          <p style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', lineHeight: 1.6, marginBottom: '2rem' }}>
-            For verification and order security, an active session is required. Please sign in with your account to proceed to payment.
-          </p>
-          <button 
-            onClick={handleSecureCheckoutRedirect}
-            className="btn btn-primary"
-            style={{ padding: '1rem 2rem', fontSize: '0.8rem', letterSpacing: '0.1em', textTransform: 'uppercase', fontWeight: 600 }}
-          >
-            Sign In to Checkout
-          </button>
-        </div>
-      </div>
-    );
-  }
+  // Format countdown minutes:seconds
+  const formatCountdown = (seconds) => {
+    if (seconds === null || seconds === undefined) return '';
+    const m = Math.floor(seconds / 60);
+    const s = seconds % 60;
+    return `${m}:${s < 10 ? '0' : ''}${s}`;
+  };
 
-  // Confirmed Order Receipt Screen
+  // Order Confirmation Success Screen
   if (confirmedOrder) {
     return (
-      <div style={{ paddingTop: '110px', paddingBottom: '80px' }} className="checkout-success-view">
-        <div className="container" style={{ maxWidth: '780px' }}>
-          <div style={{ 
-            backgroundColor: '#fff', 
-            border: '1px solid var(--border-medium)', 
-            padding: '3.5rem 3rem', 
-            boxShadow: 'var(--shadow-medium)',
-            position: 'relative'
-          }}>
-            {/* Top Success Badge */}
-            <div style={{ textAlign: 'center', marginBottom: '2.5rem' }}>
+      <div style={{ paddingTop: '110px', paddingBottom: '80px' }} className="checkout-page">
+        <div className="container" style={{ maxWidth: '680px', margin: '0 auto' }}>
+          <div style={{ backgroundColor: '#fff', border: '1px solid var(--border-light)', padding: '3rem', textAlign: 'left', boxShadow: '0 8px 30px rgba(0,0,0,0.04)' }}>
+            
+            <div style={{ textAlign: 'center', marginBottom: '2rem' }}>
               <div style={{ 
-                width: '70px', 
-                height: '70px', 
+                width: '64px', 
+                height: '64px', 
                 borderRadius: '50%', 
-                backgroundColor: 'var(--green-light)', 
+                backgroundColor: '#EAF0EC', 
                 color: 'var(--green-dark)', 
-                display: 'inline-flex', 
+                display: 'flex', 
                 alignItems: 'center', 
-                justifyContent: 'center',
-                fontSize: '2rem',
-                marginBottom: '1.25rem'
+                justifyContent: 'center', 
+                margin: '0 auto 1.5rem', 
+                fontSize: '1.75rem' 
               }}>
                 <i className="fa-solid fa-check"></i>
               </div>
-              <p style={{ fontSize: '0.8rem', fontWeight: 600, letterSpacing: '0.15em', textTransform: 'uppercase', color: 'var(--gold)' }}>
-                Payment Confirmed
-              </p>
-              <h1 style={{ fontFamily: 'var(--font-display)', fontSize: '2.25rem', color: 'var(--green-dark)', marginTop: '0.25rem' }}>
+              <h1 style={{ fontFamily: 'var(--font-display)', fontSize: '2.25rem', color: 'var(--green-dark)', fontWeight: 400, marginBottom: '0.5rem' }}>
                 Thank You for Your Order
               </h1>
-              <p style={{ fontSize: '0.9rem', color: 'var(--text-secondary)', marginTop: '0.5rem' }}>
-                A confirmation with your dispatch tracking has been prepared for <strong style={{ color: 'var(--text-primary)' }}>{confirmedOrder.shipping.email}</strong>.
+              <p style={{ color: 'var(--text-secondary)', fontSize: '0.875rem' }}>
+                A confirmation concierge receipt has been transmitted to <strong>{confirmedOrder.shipping.email}</strong>.
               </p>
             </div>
 
-            {/* Razorpay Transaction Details Card */}
-            <div style={{ 
-              backgroundColor: 'var(--bg-secondary)', 
-              border: '1px solid var(--border-light)', 
-              padding: '1.5rem 2rem', 
-              marginBottom: '2rem',
-              display: 'grid',
-              gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))',
-              gap: '1.25rem'
-            }}>
+            <div style={{ borderTop: '1px solid var(--border-light)', borderBottom: '1px solid var(--border-light)', padding: '1.5rem 0', margin: '2rem 0', display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(130px, 1fr))', gap: '1rem' }}>
               <div>
                 <span style={{ fontSize: '0.75rem', textTransform: 'uppercase', letterSpacing: '0.05em', color: 'var(--text-muted)', display: 'block', marginBottom: '0.25rem' }}>
-                  Order Reference
+                  Order Number
                 </span>
-                <strong style={{ fontSize: '0.85rem', color: 'var(--green-dark)', fontFamily: 'monospace' }}>
+                <strong style={{ fontSize: '0.9rem', color: 'var(--text-primary)', wordBreak: 'break-all' }}>
                   {confirmedOrder.orderId}
                 </strong>
               </div>
@@ -512,7 +442,7 @@ export default function CheckoutPage({ cartItems, onOrderComplete, showToast, us
                 <span style={{ fontSize: '0.75rem', textTransform: 'uppercase', letterSpacing: '0.05em', color: 'var(--text-muted)', display: 'block', marginBottom: '0.25rem' }}>
                   Payment ID
                 </span>
-                <strong style={{ fontSize: '0.85rem', color: 'var(--green-dark)', fontFamily: 'monospace' }}>
+                <strong style={{ fontSize: '0.9rem', color: 'var(--text-primary)', wordBreak: 'break-all' }}>
                   {confirmedOrder.paymentId}
                 </strong>
               </div>
@@ -544,7 +474,6 @@ export default function CheckoutPage({ cartItems, onOrderComplete, showToast, us
               </div>
             </div>
 
-            {/* Delivery Destination */}
             <div style={{ borderTop: '1px solid var(--border-light)', paddingTop: '1.75rem', marginBottom: '2.5rem' }}>
               <h3 style={{ fontSize: '0.9rem', textTransform: 'uppercase', letterSpacing: '0.08em', color: 'var(--green-dark)', marginBottom: '1rem' }}>
                 Delivery Destination
@@ -556,7 +485,6 @@ export default function CheckoutPage({ cartItems, onOrderComplete, showToast, us
               </p>
             </div>
 
-            {/* Action Buttons */}
             <div style={{ display: 'grid', gap: '0.75rem' }}>
               <a 
                 href={`#track/${confirmedOrder.orderId}`}
@@ -596,42 +524,136 @@ export default function CheckoutPage({ cartItems, onOrderComplete, showToast, us
         <h1 style={{ fontFamily: 'var(--font-display)', fontSize: '2.5rem', fontWeight: 400, color: 'var(--green-dark)', marginBottom: '0.5rem', textAlign: 'center' }}>
           Secure Checkout
         </h1>
-        <p style={{ textAlign: 'center', fontSize: '0.85rem', color: 'var(--text-secondary)', marginBottom: '3rem' }}>
-          Finalize your bespoke linen order with instant Razorpay test verification.
+        <p style={{ textAlign: 'center', fontSize: '0.85rem', color: 'var(--text-secondary)', marginBottom: '2rem' }}>
+          Finalize your bespoke linen order with hardened first-come, first-served inventory reservation.
         </p>
 
-        {cartItems.length === 0 ? (
-          <div style={{ textAlign: 'center', padding: '4rem 0' }}>
-            <i className="fa-solid fa-basket-shopping" style={{ fontSize: '3rem', color: 'var(--text-muted)', marginBottom: '1.5rem' }}></i>
-            <p style={{ color: 'var(--text-secondary)' }}>Your shopping bag is empty. Add some luxury linen to continue.</p>
-            <a href="#shop" className="btn btn-primary" style={{ marginTop: '1.5rem', display: 'inline-block' }}>Shop Collection</a>
+        {/* FCFS Active Stock Reservation Banner */}
+        {reservationExpiresAt && timeRemainingSeconds !== null && !reservationExpired && (
+          <div style={{
+            maxWidth: '680px',
+            margin: '0 auto 2rem',
+            padding: '1rem 1.25rem',
+            backgroundColor: '#EAF0EC',
+            border: '1px solid #143C28',
+            borderRadius: '2px',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            flexWrap: 'wrap',
+            gap: '0.5rem'
+          }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem' }}>
+              <i className="fa-solid fa-hourglass-half" style={{ color: '#143C28', fontSize: '1.1rem' }}></i>
+              <div>
+                <span style={{ fontSize: '0.82rem', fontWeight: 700, color: '#143C28', display: 'block' }}>
+                  FCFS Stock Reserved Exclusively for You
+                </span>
+                <span style={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>
+                  Complete payment before the timer elapses to guarantee fulfillment.
+                </span>
+              </div>
+            </div>
+            <div style={{
+              backgroundColor: '#143C28',
+              color: '#fff',
+              padding: '0.35rem 0.75rem',
+              fontWeight: 700,
+              fontSize: '0.9rem',
+              letterSpacing: '0.05em',
+              fontFamily: 'monospace'
+            }}>
+              {formatCountdown(timeRemainingSeconds)}
+            </div>
+          </div>
+        )}
+
+        {reservationExpired && (
+          <div style={{
+            maxWidth: '680px',
+            margin: '0 auto 2rem',
+            padding: '1rem 1.25rem',
+            backgroundColor: '#FFF0F0',
+            border: '1px solid #D9534F',
+            borderRadius: '2px',
+            display: 'flex',
+            alignItems: 'center',
+            gap: '0.75rem',
+            color: '#A94442'
+          }}>
+            <i className="fa-solid fa-triangle-exclamation" style={{ fontSize: '1.2rem' }}></i>
+            <span style={{ fontSize: '0.85rem', fontWeight: 600 }}>
+              Reservation Expired: Your 10-minute window has elapsed. Click "Checkout" below to re-verify current availability.
+            </span>
+          </div>
+        )}
+
+        {/* Authentication Wall Guard */}
+        {!user ? (
+          <div style={{
+            maxWidth: '560px',
+            margin: '2rem auto 4rem',
+            padding: '2.5rem 2rem',
+            backgroundColor: '#fff',
+            border: '1px solid var(--border-medium)',
+            textAlign: 'center',
+            boxShadow: '0 4px 20px rgba(0,0,0,0.03)'
+          }}>
+            <div style={{
+              width: '54px',
+              height: '54px',
+              borderRadius: '50%',
+              backgroundColor: 'var(--bg-secondary)',
+              color: 'var(--green-dark)',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              margin: '0 auto 1.25rem',
+              fontSize: '1.25rem'
+            }}>
+              <i className="fa-solid fa-shield-halved"></i>
+            </div>
+            <h2 style={{ fontFamily: 'var(--font-display)', fontSize: '1.5rem', color: 'var(--green-dark)', marginBottom: '0.5rem' }}>
+              Authentication Required
+            </h2>
+            <p style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', lineHeight: 1.6, marginBottom: '2rem' }}>
+              Please sign in with your email or Google account to bind your bespoke garment reservation and access live tracking.
+            </p>
+            <button
+              onClick={handleSecureCheckoutRedirect}
+              className="btn btn-primary"
+              style={{ padding: '0.85rem 2rem', fontSize: '0.85rem', letterSpacing: '0.1em', textTransform: 'uppercase', fontWeight: 600 }}
+            >
+              <i className="fa-solid fa-arrow-right-to-bracket" style={{ marginRight: '8px' }}></i> Sign In to Proceed
+            </button>
           </div>
         ) : (
-          <div style={{ display: 'grid', gridTemplateColumns: '1.2fr 1fr', gap: '4rem' }} className="checkout-grid">
-            {/* Left Column: Shipping & Payment */}
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 420px', gap: '3rem', alignItems: 'start' }}>
+            
+            {/* Left Column: Form & Payment Choice */}
             <div>
               <form onSubmit={handleSubmitPayment}>
                 {/* Shipping Details */}
-                <div style={{ marginBottom: '3rem' }}>
+                <div style={{ marginBottom: '2.5rem' }}>
                   <h3 style={{ fontFamily: 'var(--font-sans)', fontSize: '1.1rem', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.05em', color: 'var(--green-dark)', paddingBottom: '0.75rem', borderBottom: '1px solid var(--border-light)', marginBottom: '1.5rem' }}>
-                    1. Shipping Information
+                    1. Shipping Destination
                   </h3>
-                  <div style={{ display: 'grid', gap: '1.25rem' }}>
-                    <div>
-                      <label htmlFor="name" style={{ display: 'block', fontSize: '0.75rem', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '0.5rem', color: 'var(--text-secondary)' }}>Full Name</label>
-                      <input 
-                        type="text" 
-                        id="name" 
-                        name="name"
-                        value={formData.name}
-                        onChange={handleInputChange}
-                        required
-                        style={{ width: '100%', padding: '0.75rem', border: '1px solid var(--border-medium)', borderRadius: '0', fontSize: '0.9rem', backgroundColor: '#fff' }} 
-                        placeholder="e.g. Alex Mercer"
-                      />
-                    </div>
-                    
-                    <div style={{ display: 'grid', gridTemplateColumns: '1.2fr 1fr', gap: '1rem' }}>
+                  
+                  <div style={{ display: 'grid', gap: '1rem' }}>
+                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
+                      <div>
+                        <label htmlFor="name" style={{ display: 'block', fontSize: '0.75rem', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '0.5rem', color: 'var(--text-secondary)' }}>Full Name</label>
+                        <input 
+                          type="text" 
+                          id="name" 
+                          name="name"
+                          value={formData.name}
+                          onChange={handleInputChange}
+                          required
+                          style={{ width: '100%', padding: '0.75rem', border: '1px solid var(--border-medium)', borderRadius: '0', fontSize: '0.9rem', backgroundColor: '#fff' }} 
+                          placeholder="Lord/Lady Sterling"
+                        />
+                      </div>
                       <div>
                         <label htmlFor="email" style={{ display: 'block', fontSize: '0.75rem', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '0.5rem', color: 'var(--text-secondary)' }}>Email Address</label>
                         <input 
@@ -642,22 +664,23 @@ export default function CheckoutPage({ cartItems, onOrderComplete, showToast, us
                           onChange={handleInputChange}
                           required
                           style={{ width: '100%', padding: '0.75rem', border: '1px solid var(--border-medium)', borderRadius: '0', fontSize: '0.9rem', backgroundColor: '#fff' }} 
-                          placeholder="alex@gmail.com"
+                          placeholder="patron@estate.com"
                         />
                       </div>
-                      <div>
-                        <label htmlFor="phone" style={{ display: 'block', fontSize: '0.75rem', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '0.5rem', color: 'var(--text-secondary)' }}>Phone (SMS Tracking)</label>
-                        <input 
-                          type="text" 
-                          id="phone" 
-                          name="phone"
-                          value={formData.phone}
-                          onChange={handleInputChange}
-                          required
-                          style={{ width: '100%', padding: '0.75rem', border: '1px solid var(--border-medium)', borderRadius: '0', fontSize: '0.9rem', backgroundColor: '#fff' }} 
-                          placeholder="+91 98765 43210"
-                        />
-                      </div>
+                    </div>
+
+                    <div>
+                      <label htmlFor="phone" style={{ display: 'block', fontSize: '0.75rem', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '0.5rem', color: 'var(--text-secondary)' }}>Contact Phone</label>
+                      <input 
+                        type="text" 
+                        id="phone" 
+                        name="phone"
+                        value={formData.phone}
+                        onChange={handleInputChange}
+                        required
+                        style={{ width: '100%', padding: '0.75rem', border: '1px solid var(--border-medium)', borderRadius: '0', fontSize: '0.9rem', backgroundColor: '#fff' }} 
+                        placeholder="+91 98765 43210"
+                      />
                     </div>
 
                     <div>
@@ -710,13 +733,13 @@ export default function CheckoutPage({ cartItems, onOrderComplete, showToast, us
                     <h3 style={{ fontFamily: 'var(--font-sans)', fontSize: '1.1rem', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.05em', color: 'var(--green-dark)', margin: 0 }}>
                       2. Payment Method
                     </h3>
-                    <span style={{ fontSize: '0.7rem', fontWeight: 600, letterSpacing: '0.05em', textTransform: 'uppercase', backgroundColor: 'var(--gold-light)', color: 'var(--gold-hover)', padding: '0.2rem 0.6rem', border: '1px solid var(--gold)' }}>
-                      <i className="fa-solid fa-flask" style={{ marginRight: '4px' }}></i> Test Mode Active
+                    <span style={{ fontSize: '0.7rem', fontWeight: 600, letterSpacing: '0.05em', textTransform: 'uppercase', backgroundColor: '#EAF0EC', color: 'var(--green-dark)', padding: '0.2rem 0.6rem', border: '1px solid var(--border-medium)' }}>
+                      <i className="fa-solid fa-shield-halved" style={{ marginRight: '4px' }}></i> Encrypted &amp; Idempotent
                     </span>
                   </div>
 
                   {/* Payment Method Selector Tabs */}
-                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '0.75rem', marginBottom: '1.5rem' }}>
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem', marginBottom: '1.5rem' }}>
                     <button
                       type="button"
                       onClick={() => setPaymentMethod('razorpay')}
@@ -725,7 +748,7 @@ export default function CheckoutPage({ cartItems, onOrderComplete, showToast, us
                         border: `1.5px solid ${paymentMethod === 'razorpay' ? 'var(--green-dark)' : 'var(--border-medium)'}`,
                         backgroundColor: paymentMethod === 'razorpay' ? '#EAF0EC' : '#fff',
                         fontWeight: 600,
-                        fontSize: '0.78rem',
+                        fontSize: '0.82rem',
                         color: 'var(--green-dark)',
                         transition: 'var(--transition-fast)',
                         display: 'flex',
@@ -736,36 +759,10 @@ export default function CheckoutPage({ cartItems, onOrderComplete, showToast, us
                       }}
                     >
                       <span style={{ display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
-                        <i className="fa-solid fa-mobile-screen"></i> UPI &amp; NetBanking
+                        <i className="fa-solid fa-credit-card"></i> UPI, Cards &amp; NetBanking
                       </span>
-                      <span style={{ fontSize: '0.68rem', color: 'var(--text-secondary)', fontWeight: 400 }}>
-                        Razorpay Modal
-                      </span>
-                    </button>
-
-                    <button
-                      type="button"
-                      onClick={() => setPaymentMethod('card')}
-                      style={{ 
-                        padding: '1rem 0.75rem', 
-                        border: `1.5px solid ${paymentMethod === 'card' ? 'var(--green-dark)' : 'var(--border-medium)'}`,
-                        backgroundColor: paymentMethod === 'card' ? '#EAF0EC' : '#fff',
-                        fontWeight: 600,
-                        fontSize: '0.78rem',
-                        color: 'var(--green-dark)',
-                        transition: 'var(--transition-fast)',
-                        display: 'flex',
-                        flexDirection: 'column',
-                        alignItems: 'center',
-                        gap: '0.25rem',
-                        cursor: 'pointer'
-                      }}
-                    >
-                      <span style={{ display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
-                        <i className="fa-solid fa-credit-card"></i> Card (Direct Test)
-                      </span>
-                      <span style={{ fontSize: '0.68rem', color: '#143C28', fontWeight: 600 }}>
-                        100% Guaranteed
+                      <span style={{ fontSize: '0.7rem', color: 'var(--text-secondary)', fontWeight: 400 }}>
+                        Official Razorpay Gateway
                       </span>
                     </button>
 
@@ -777,7 +774,7 @@ export default function CheckoutPage({ cartItems, onOrderComplete, showToast, us
                         border: `1.5px solid ${paymentMethod === 'cod' ? 'var(--green-dark)' : 'var(--border-medium)'}`,
                         backgroundColor: paymentMethod === 'cod' ? '#EAF0EC' : '#fff',
                         fontWeight: 600,
-                        fontSize: '0.78rem',
+                        fontSize: '0.82rem',
                         color: 'var(--green-dark)',
                         transition: 'var(--transition-fast)',
                         display: 'flex',
@@ -790,39 +787,30 @@ export default function CheckoutPage({ cartItems, onOrderComplete, showToast, us
                       <span style={{ display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
                         <i className="fa-solid fa-truck"></i> Cash on Delivery
                       </span>
-                      <span style={{ fontSize: '0.68rem', color: 'var(--text-secondary)', fontWeight: 400 }}>
-                        Pay on delivery
+                      <span style={{ fontSize: '0.7rem', color: 'var(--text-secondary)', fontWeight: 400 }}>
+                        Pay upon physical delivery
                       </span>
                     </button>
                   </div>
 
-                  {/* TAB 1: Razorpay Popup (UPI / NetBanking) */}
                   {paymentMethod === 'razorpay' && (
                     <div style={{ backgroundColor: 'var(--bg-secondary)', border: '1px solid var(--border-medium)', padding: '1.5rem', marginBottom: '1.5rem' }}>
                       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '1rem' }}>
                         <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                          <i className="fa-solid fa-qrcode" style={{ fontSize: '1.2rem', color: '#143C28' }}></i>
-                          <span style={{ fontSize: '0.85rem', fontWeight: 700, color: 'var(--text-primary)' }}>Official Razorpay Gateway Popup</span>
+                          <i className="fa-solid fa-lock" style={{ fontSize: '1.1rem', color: '#143C28' }}></i>
+                          <span style={{ fontSize: '0.85rem', fontWeight: 700, color: 'var(--text-primary)' }}>Secure Razorpay Checkout</span>
                         </div>
-                        <span style={{ fontSize: '0.7rem', color: 'var(--text-muted)' }}>Live Connected</span>
+                        <span style={{ fontSize: '0.7rem', color: 'var(--text-muted)' }}>PCI-DSS Certified</span>
                       </div>
 
                       <p style={{ fontSize: '0.82rem', color: 'var(--text-secondary)', lineHeight: 1.5, marginBottom: '1rem' }}>
-                        Clicking the button opens the real <strong>Razorpay Checkout</strong> popup. In the popup, select <strong>UPI / Google Pay</strong> or <strong>NetBanking</strong> for instant successful test authorization.
+                        Clicking the button reserves your inventory for 10 minutes and opens the secure <strong>Razorpay Checkout</strong> modal for instant payment via UPI, Debit/Credit Card, or NetBanking.
                       </p>
 
-                      {/* Interactive Test UPI Quick Bar */}
-                      <div style={{ backgroundColor: '#fff', border: '1px solid var(--border-light)', padding: '1.25rem', marginBottom: '1.25rem' }}>
-                        <span style={{ fontSize: '0.72rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.08em', color: 'var(--green-dark)', display: 'block', marginBottom: '0.65rem' }}>
-                          <i className="fa-solid fa-mobile-screen-button" style={{ marginRight: '5px', color: 'var(--gold)' }}></i> Razorpay Test Steps (100% Success):
+                      <div style={{ backgroundColor: '#fff', border: '1px solid var(--border-light)', padding: '1rem', marginBottom: '0.5rem' }}>
+                        <span style={{ fontSize: '0.72rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.08em', color: 'var(--green-dark)', display: 'block', marginBottom: '0.5rem' }}>
+                          <i className="fa-solid fa-vial" style={{ marginRight: '5px', color: 'var(--gold)' }}></i> Sandbox Test Verification:
                         </span>
-
-                        <div style={{ display: 'grid', gap: '0.5rem', fontSize: '0.8rem', color: 'var(--text-secondary)', marginBottom: '0.75rem' }}>
-                          <div>1️⃣ Click <strong>"Open Razorpay Checkout"</strong> below.</div>
-                          <div>2️⃣ In the Razorpay popup, click <strong>"Pay with Google Pay UPI"</strong> (or enter <code>success@razorpay</code>).</div>
-                          <div>3️⃣ On Razorpay's test simulator screen, click <strong style={{ color: '#143C28' }}>"Success"</strong>.</div>
-                        </div>
-
                         <button
                           type="button"
                           onClick={() => copyToClipboard('success@razorpay', 'UPI ID')}
@@ -845,116 +833,13 @@ export default function CheckoutPage({ cartItems, onOrderComplete, showToast, us
                           </span>
                         </button>
                       </div>
-
-                      {/* Fast Instant Sandbox Bypass Option */}
-                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', borderTop: '1px solid var(--border-light)', paddingTop: '0.9rem' }}>
-                        <span style={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>
-                          Prefer 1-click test checkout?
-                        </span>
-                        <button
-                          type="button"
-                          disabled={isProcessing}
-                          onClick={() => handleInstantSandboxTest()}
-                          style={{
-                            backgroundColor: 'transparent',
-                            border: '1px solid var(--green-dark)',
-                            color: 'var(--green-dark)',
-                            fontSize: '0.72rem',
-                            fontWeight: 600,
-                            letterSpacing: '0.05em',
-                            textTransform: 'uppercase',
-                            padding: '0.35rem 0.75rem',
-                            cursor: 'pointer'
-                          }}
-                        >
-                          <i className="fa-solid fa-bolt" style={{ color: 'var(--gold)', marginRight: '4px' }}></i> Instant Mock Test
-                        </button>
-                      </div>
                     </div>
                   )}
 
-                  {/* TAB 2: Direct Card Simulation (100% Guaranteed Card Testing) */}
-                  {paymentMethod === 'card' && (
-                    <div style={{ backgroundColor: 'var(--bg-secondary)', border: '1px solid var(--border-medium)', padding: '1.5rem', marginBottom: '1.5rem' }}>
-                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '1.25rem' }}>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                          <i className="fa-brands fa-cc-visa" style={{ fontSize: '1.4rem', color: '#1a332a' }}></i>
-                          <i className="fa-brands fa-cc-mastercard" style={{ fontSize: '1.4rem', color: '#eb001b' }}></i>
-                          <span style={{ fontSize: '0.8rem', fontWeight: 700, color: 'var(--text-primary)' }}>Direct Card Test Gateway</span>
-                        </div>
-                        <span style={{ fontSize: '0.65rem', color: '#143C28', fontWeight: 600, backgroundColor: '#EAF0EC', padding: '0.2rem 0.5rem', borderRadius: '2px' }}>
-                          ✓ Guaranteed 100% Pass
-                        </span>
-                      </div>
-
-                      <div style={{ display: 'grid', gap: '1rem', marginBottom: '1.25rem' }}>
-                        <div>
-                          <label style={{ display: 'block', fontSize: '0.7rem', fontWeight: 600, textTransform: 'uppercase', color: 'var(--text-secondary)', marginBottom: '0.35rem' }}>Card Number</label>
-                          <input 
-                            type="text" 
-                            name="cardNumber"
-                            value={cardData.cardNumber}
-                            onChange={handleCardInputChange}
-                            required
-                            style={{ width: '100%', padding: '0.75rem', border: '1px solid var(--border-medium)', backgroundColor: '#fff', fontSize: '0.9rem', fontFamily: 'monospace' }}
-                            placeholder="4012 0000 0000 0002"
-                          />
-                        </div>
-
-                        <div style={{ display: 'grid', gridTemplateColumns: '1.5fr 1fr', gap: '1rem' }}>
-                          <div>
-                            <label style={{ display: 'block', fontSize: '0.7rem', fontWeight: 600, textTransform: 'uppercase', color: 'var(--text-secondary)', marginBottom: '0.35rem' }}>Expiry (MM/YY)</label>
-                            <input 
-                              type="text" 
-                              name="cardExp"
-                              value={cardData.cardExp}
-                              onChange={handleCardInputChange}
-                              required
-                              style={{ width: '100%', padding: '0.75rem', border: '1px solid var(--border-medium)', backgroundColor: '#fff', fontSize: '0.9rem' }}
-                              placeholder="12/28"
-                            />
-                          </div>
-                          <div>
-                            <label style={{ display: 'block', fontSize: '0.7rem', fontWeight: 600, textTransform: 'uppercase', color: 'var(--text-secondary)', marginBottom: '0.35rem' }}>CVV</label>
-                            <input 
-                              type="password" 
-                              name="cardCvv"
-                              value={cardData.cardCvv}
-                              onChange={handleCardInputChange}
-                              required
-                              maxLength="4"
-                              style={{ width: '100%', padding: '0.75rem', border: '1px solid var(--border-medium)', backgroundColor: '#fff', fontSize: '0.9rem' }}
-                              placeholder="123"
-                            />
-                          </div>
-                        </div>
-                      </div>
-
-                      {/* Quick Fill Preset Buttons */}
-                      <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
-                        <button
-                          type="button"
-                          onClick={() => setCardData({ cardNumber: '4012 0000 0000 0002', cardName: 'Alex Mercer', cardExp: '12/28', cardCvv: '123' })}
-                          style={{ padding: '0.3rem 0.6rem', fontSize: '0.7rem', backgroundColor: '#fff', border: '1px solid var(--border-medium)', cursor: 'pointer' }}
-                        >
-                          <i className="fa-brands fa-cc-visa" style={{ marginRight: '4px' }}></i> Auto-fill Visa
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => setCardData({ cardNumber: '5123 4500 0000 0008', cardName: 'Alex Mercer', cardExp: '12/28', cardCvv: '123' })}
-                          style={{ padding: '0.3rem 0.6rem', fontSize: '0.7rem', backgroundColor: '#fff', border: '1px solid var(--border-medium)', cursor: 'pointer' }}
-                        >
-                          <i className="fa-brands fa-cc-mastercard" style={{ marginRight: '4px' }}></i> Auto-fill Mastercard
-                        </button>
-                      </div>
-                    </div>
-                  )}
-
-                  {/* TAB 3: Cash on Delivery */}
                   {paymentMethod === 'cod' && (
                     <div style={{ padding: '1.5rem', backgroundColor: 'var(--bg-secondary)', border: '1px solid var(--border-light)', marginBottom: '1.5rem' }}>
                       <p style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', lineHeight: 1.6 }}>
-                        You will pay cash upon physical delivery. Please ensure exact change is available at the time of delivery.
+                        Inventory will be reserved for your order and dispatched. You will pay cash upon physical delivery. Please keep exact change ready.
                       </p>
                     </div>
                   )}
@@ -979,17 +864,12 @@ export default function CheckoutPage({ cartItems, onOrderComplete, showToast, us
                   {isProcessing ? (
                     <span>
                       <i className="fa-solid fa-circle-notch fa-spin" style={{ marginRight: '8px' }}></i>
-                      {processingStatus || 'Connecting to Payment Gateway...'}
+                      {processingStatus || 'Securing FCFS Reservation...'}
                     </span>
                   ) : paymentMethod === 'razorpay' ? (
                     <span>
                       <i className="fa-solid fa-lock" style={{ marginRight: '8px', fontSize: '0.8rem' }}></i>
-                      Open Razorpay UPI &bull; ₹{finalTotal.toLocaleString('en-IN', { minimumFractionDigits: 2 })}
-                    </span>
-                  ) : paymentMethod === 'card' ? (
-                    <span>
-                      <i className="fa-solid fa-credit-card" style={{ marginRight: '8px', fontSize: '0.8rem' }}></i>
-                      Pay with Card (Test Mode) &bull; ₹{finalTotal.toLocaleString('en-IN', { minimumFractionDigits: 2 })}
+                      Reserve Stock &amp; Pay &bull; ₹{finalTotal.toLocaleString('en-IN', { minimumFractionDigits: 2 })}
                     </span>
                   ) : (
                     <span>
@@ -1040,57 +920,49 @@ export default function CheckoutPage({ cartItems, onOrderComplete, showToast, us
                 {appliedPromo ? (
                   <button 
                     type="button" 
-                    onClick={() => { setAppliedPromo(null); setCouponCode(''); showToast('Promo code removed.'); }}
-                    className="btn btn-secondary" 
-                    style={{ padding: '0.6rem 1rem', fontSize: '0.75rem', letterSpacing: '0.05em', textTransform: 'uppercase', fontWeight: 600, color: '#b91c1c' }}
+                    onClick={() => { setAppliedPromo(null); setCouponCode(''); }}
+                    className="btn btn-secondary"
+                    style={{ padding: '0.6rem 1rem', fontSize: '0.8rem' }}
                   >
                     Remove
                   </button>
                 ) : (
                   <button 
                     type="submit" 
-                    className="btn btn-secondary" 
-                    style={{ padding: '0.6rem 1.25rem', fontSize: '0.75rem', letterSpacing: '0.05em', textTransform: 'uppercase', fontWeight: 600, minWidth: '80px' }}
+                    className="btn btn-primary"
+                    style={{ padding: '0.6rem 1rem', fontSize: '0.8rem' }}
                   >
                     Apply
                   </button>
                 )}
               </form>
 
-              {appliedPromo && (
-                <div style={{ backgroundColor: '#f0fdf4', border: '1px solid #bbf7d0', padding: '0.5rem 0.75rem', borderRadius: '4px', marginBottom: '1.5rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                  <span style={{ fontSize: '0.75rem', color: '#15803d', fontWeight: 600 }}>
-                    <i className="fa-solid fa-tag" style={{ marginRight: '6px' }}></i>
-                    {appliedPromo.code}: {appliedPromo.type === 'flat' ? `₹${appliedPromo.value.toLocaleString('en-IN')} OFF` : `${appliedPromo.value}% OFF`}
-                  </span>
-                  <span style={{ fontSize: '0.75rem', color: '#15803d', fontWeight: 700 }}>
-                    -₹{discountAmount.toLocaleString('en-IN', { minimumFractionDigits: 2 })}
-                  </span>
-                </div>
-              )}
-
               {/* Price Breakdown */}
-              <div style={{ display: 'grid', gap: '0.75rem', borderTop: '1px solid var(--border-light)', paddingTop: '1.5rem', fontSize: '0.85rem', color: 'var(--text-secondary)' }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+              <div style={{ display: 'grid', gap: '0.75rem', borderTop: '1px solid var(--border-light)', paddingTop: '1.5rem' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.85rem', color: 'var(--text-secondary)' }}>
                   <span>Subtotal</span>
-                  <span style={{ color: 'var(--text-primary)', fontWeight: 600 }}>₹{subtotal.toLocaleString('en-IN', { minimumFractionDigits: 2 })}</span>
+                  <span>₹{subtotal.toLocaleString('en-IN', { minimumFractionDigits: 2 })}</span>
                 </div>
-                {discountAmount > 0 && (
-                  <div style={{ display: 'flex', justifyContent: 'space-between', color: '#15803d', fontWeight: 600 }}>
-                    <span>Promo Discount ({appliedPromo?.code})</span>
-                    <span>- ₹{discountAmount.toLocaleString('en-IN', { minimumFractionDigits: 2 })}</span>
+                {appliedPromo && (
+                  <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.85rem', color: '#2e7d32', fontWeight: 600 }}>
+                    <span>Voucher ({appliedPromo.code})</span>
+                    <span>-₹{discountAmount.toLocaleString('en-IN', { minimumFractionDigits: 2 })}</span>
                   </div>
                 )}
-                <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                  <span>Shipping</span>
-                  <span style={{ color: 'var(--text-primary)', fontWeight: 600 }}>
-                    {shipping === 0 ? 'Complimentary' : `₹${shipping.toLocaleString('en-IN', { minimumFractionDigits: 2 })}`}
-                  </span>
+                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.85rem', color: 'var(--text-secondary)' }}>
+                  <span>Artisanal Shipping</span>
+                  <span>{shipping === 0 ? <strong style={{ color: '#2e7d32' }}>Complimentary</strong> : `₹${shipping.toFixed(2)}`}</span>
                 </div>
-                <div style={{ display: 'flex', justifyContent: 'space-between', borderTop: '1px solid var(--border-light)', paddingTop: '1rem', fontSize: '1.05rem', color: 'var(--green-dark)', fontWeight: 700 }}>
-                  <span>Total Due</span>
+                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '1.1rem', fontWeight: 600, color: 'var(--green-dark)', borderTop: '1px solid var(--border-medium)', paddingTop: '1rem', marginTop: '0.5rem' }}>
+                  <span>Total</span>
                   <span>₹{finalTotal.toLocaleString('en-IN', { minimumFractionDigits: 2 })}</span>
                 </div>
+              </div>
+
+              {/* Security Badge */}
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem', marginTop: '2rem', fontSize: '0.75rem', color: 'var(--text-muted)' }}>
+                <i className="fa-solid fa-lock"></i>
+                <span>First-Come, First-Served Atomic Stock Protection</span>
               </div>
             </div>
           </div>

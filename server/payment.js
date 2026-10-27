@@ -2,7 +2,17 @@ import express from "express";
 import Razorpay from "razorpay";
 import crypto from "crypto";
 import dotenv from "dotenv";
-import { recordServerPaymentTransaction } from "./supabase.js";
+import {
+  supabaseAdmin,
+  calculateAuthoritativeOrder,
+  reserveInventoryFCFS,
+  commitInventoryReservation,
+  releaseInventoryReservation,
+  cleanupExpiredReservations,
+  recordWebhookEvent,
+  recordServerPaymentTransaction,
+  RESERVATION_TTL_MINUTES
+} from "./supabase.js";
 
 dotenv.config();
 
@@ -11,8 +21,9 @@ const router = express.Router();
 const getRazorpayKeys = () => {
   const keyId = (process.env.RAZORPAY_KEY_ID || "").trim() || "rzp_test_TrmfyllGcVE3Zv";
   const keySecret = (process.env.RAZORPAY_KEY_SECRET || "").trim() || "a1iU8Gd6Ff2UTPBtAZ3H9iyg";
+  const webhookSecret = (process.env.RAZORPAY_WEBHOOK_SECRET || "").trim() || keySecret;
   const configId = (process.env.RAZORPAY_CONFIG_ID || "").trim() || "config_Tsrko6CbrIPYEM";
-  return { keyId, keySecret, configId };
+  return { keyId, keySecret, webhookSecret, configId };
 };
 
 const getRazorpayClient = () => {
@@ -29,7 +40,7 @@ const getRazorpayClient = () => {
 
 /**
  * GET /api/payment/config
- * Exposes the active public Razorpay Key ID and test mode status to frontend
+ * Exposes active public Razorpay Key ID and test mode status to frontend
  */
 router.get("/config", (req, res) => {
   const { keyId, configId } = getRazorpayKeys();
@@ -37,149 +48,492 @@ router.get("/config", (req, res) => {
     keyId: keyId,
     configId: configId,
     currency: "INR",
-    isTestMode: true,
+    isTestMode: keyId.startsWith("rzp_test_"),
     brandName: "EDEN & THREAD",
     supportEmail: "concierge@edenthreads.luxury",
-    themeColor: "#1A332A"
+    themeColor: "#143C28",
+    reservationTtlMinutes: RESERVATION_TTL_MINUTES
   });
 });
 
 /**
  * POST /api/payment/create-order
- * Generates an order for Razorpay checkout in INR paise
+ * Authoritatively calculates prices, executes FCFS inventory reservation,
+ * and creates Razorpay Order or COD Order with idempotency protection.
  */
 router.post("/create-order", async (req, res) => {
   try {
-    const { amount, currency = "INR", receipt, notes = {} } = req.body;
+    const {
+      items,
+      couponCode,
+      shippingDetails,
+      paymentMethod = "razorpay",
+      idempotencyKey,
+      notes = {}
+    } = req.body;
+
+    if (!items || !Array.isArray(items) || items.length === 0) {
+      return res.status(400).json({
+        success: false,
+        message: "Your shopping bag is empty."
+      });
+    }
+
+    if (!shippingDetails || !shippingDetails.name || !shippingDetails.address || !shippingDetails.city) {
+      return res.status(400).json({
+        success: false,
+        message: "Incomplete shipping information."
+      });
+    }
+
     const { keyId, configId } = getRazorpayKeys();
     const razorpayClient = getRazorpayClient();
 
-    if (!amount || isNaN(amount) || amount <= 0) {
-      return res.status(400).json({ success: false, message: "Invalid amount for order creation" });
+    // 1. Idempotency Check: if idempotencyKey supplied, return existing active order
+    if (idempotencyKey && typeof idempotencyKey === 'string') {
+      const { data: existingOrder } = await supabaseAdmin
+        .from('orders')
+        .select('*')
+        .eq('idempotency_key', idempotencyKey)
+        .maybeSingle();
+
+      if (existingOrder) {
+        const isStillActive = existingOrder.payment_status === 'pending' &&
+          existingOrder.notes?.reservation_expires_at &&
+          new Date(existingOrder.notes.reservation_expires_at) > new Date();
+
+        if (isStillActive) {
+          return res.json({
+            success: true,
+            idempotent: true,
+            orderId: existingOrder.order_id,
+            razorpayOrderId: existingOrder.payment_id || existingOrder.order_id,
+            amount: existingOrder.total_amount,
+            amountInPaise: Math.round(Number(existingOrder.total_amount) * 100),
+            currency: existingOrder.currency,
+            keyId: keyId,
+            configId: configId,
+            reservationExpiresAt: existingOrder.notes.reservation_expires_at,
+            ttlMinutes: RESERVATION_TTL_MINUTES
+          });
+        }
+      }
     }
 
-    // Convert amount in Rupees to Paise (Razorpay unit: 1 INR = 100 paise)
-    const amountInPaise = Math.round(Number(amount) * 100);
-    const receiptId = receipt || `rcpt_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`;
+    // 2. Authoritative Price Calculation (prevents client price tampering)
+    const calculation = await calculateAuthoritativeOrder({
+      items,
+      couponCode,
+      shippingDetails
+    });
 
-    const options = {
-      amount: amountInPaise,
-      currency,
-      receipt: receiptId,
-      checkout_config_id: configId || undefined,
-      notes: {
-        brand: "EDEN & THREAD",
-        ...notes
+    const internalOrderId = `eden_ord_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`;
+
+    // 3. Atomic FCFS Inventory Reservation
+    const reservationResult = await reserveInventoryFCFS({
+      orderId: internalOrderId,
+      items: calculation.items,
+      ttlMinutes: RESERVATION_TTL_MINUTES
+    });
+
+    if (!reservationResult.success) {
+      return res.status(409).json({
+        success: false,
+        errorCode: reservationResult.errorCode || 'INSUFFICIENT_STOCK',
+        productId: reservationResult.productId,
+        productTitle: reservationResult.productTitle,
+        available: reservationResult.available,
+        requested: reservationResult.requested,
+        message: reservationResult.message || 'Requested inventory is no longer available.'
+      });
+    }
+
+    const reservationExpiresAt = reservationResult.expiresAt;
+
+    // 4. Handle Cash on Delivery (COD) Flow
+    if (paymentMethod === "cod") {
+      const { data: codOrder, error: codErr } = await supabaseAdmin
+        .from('orders')
+        .insert([{
+          order_id: internalOrderId,
+          customer_name: shippingDetails.name,
+          customer_email: shippingDetails.email,
+          customer_phone: shippingDetails.phone || null,
+          shipping_address: shippingDetails,
+          items: calculation.items,
+          subtotal: calculation.subtotal,
+          discount: calculation.discount,
+          total_amount: calculation.finalTotal,
+          currency: 'INR',
+          payment_id: 'PAYABLE_ON_DELIVERY',
+          payment_status: 'pending',
+          order_status: 'Placed',
+          idempotency_key: idempotencyKey || null,
+          notes: {
+            ...notes,
+            payment_method: 'cod',
+            reservation_expires_at: reservationExpiresAt,
+            applied_coupon: calculation.appliedCoupon
+          }
+        }])
+        .select()
+        .single();
+
+      if (codErr) {
+        await releaseInventoryReservation({ orderId: internalOrderId, reason: 'order_creation_failed' });
+        throw new Error(`Failed to record COD order: ${codErr.message}`);
       }
-    };
 
-    let order = null;
+      return res.json({
+        success: true,
+        orderId: internalOrderId,
+        paymentMethod: 'cod',
+        amount: calculation.finalTotal,
+        amountInPaise: calculation.amountInPaise,
+        currency: 'INR',
+        reservationExpiresAt,
+        ttlMinutes: RESERVATION_TTL_MINUTES,
+        message: "Cash on delivery order placed and inventory reserved."
+      });
+    }
 
-    // Attempt creation with Razorpay SDK if valid credentials exist
+    // 5. Razorpay Online Order Creation
+    let rzpOrder = null;
     if (razorpayClient) {
       try {
-        order = await razorpayClient.orders.create(options);
-      } catch (sdkError) {
-        console.warn("[Razorpay SDK API Warning] Falling back to local test order:", sdkError.message);
+        rzpOrder = await razorpayClient.orders.create({
+          amount: calculation.amountInPaise,
+          currency: "INR",
+          receipt: internalOrderId,
+          checkout_config_id: configId || undefined,
+          notes: {
+            brand: "EDEN & THREAD",
+            internal_order_id: internalOrderId,
+            customer_email: shippingDetails.email,
+            item_count: calculation.items.length,
+            ...notes
+          }
+        });
+      } catch (rzpErr) {
+        console.error("[Razorpay API Order Creation Failed]:", rzpErr.message);
+        // Compensating transaction: release reserved inventory on payment gateway creation failure
+        await releaseInventoryReservation({ orderId: internalOrderId, reason: 'razorpay_gateway_failure' });
+        return res.status(502).json({
+          success: false,
+          message: `Payment gateway temporarily unavailable: ${rzpErr.message}`
+        });
       }
     }
 
-    // Fallback sandbox test order generator (guarantees seamless testing)
-    if (!order) {
-      order = {
-        id: `order_${Date.now()}_${Math.random().toString(36).substring(2, 9)}`,
-        entity: "order",
-        amount: amountInPaise,
-        amount_paid: 0,
-        amount_due: amountInPaise,
-        currency: currency,
-        receipt: receiptId,
-        status: "created",
-        attempts: 0,
-        notes: options.notes,
-        created_at: Math.floor(Date.now() / 1000)
-      };
+    const razorpayOrderId = rzpOrder?.id || internalOrderId;
+
+    // 6. Persist order in Supabase
+    const { error: dbErr } = await supabaseAdmin
+      .from('orders')
+      .insert([{
+        order_id: internalOrderId,
+        customer_name: shippingDetails.name,
+        customer_email: shippingDetails.email,
+        customer_phone: shippingDetails.phone || null,
+        shipping_address: shippingDetails,
+        items: calculation.items,
+        subtotal: calculation.subtotal,
+        discount: calculation.discount,
+        total_amount: calculation.finalTotal,
+        currency: 'INR',
+        payment_id: razorpayOrderId,
+        payment_status: 'pending',
+        order_status: 'Placed',
+        idempotency_key: idempotencyKey || null,
+        notes: {
+          ...notes,
+          razorpay_order_id: razorpayOrderId,
+          reservation_expires_at: reservationExpiresAt,
+          applied_coupon: calculation.appliedCoupon
+        }
+      }]);
+
+    if (dbErr) {
+      await releaseInventoryReservation({ orderId: internalOrderId, reason: 'db_insert_failed' });
+      throw new Error(`Failed to initialize order: ${dbErr.message}`);
     }
 
     return res.json({
       success: true,
-      order,
+      orderId: internalOrderId,
+      razorpayOrderId: razorpayOrderId,
       keyId: keyId,
-      configId: (process.env.RAZORPAY_CONFIG_ID || "").trim() || "config_Tsrko6CbrIPYEM",
+      configId: configId,
+      amount: calculation.finalTotal,
+      amountInPaise: calculation.amountInPaise,
       currency: "INR",
-      amountRupees: amount
+      reservationExpiresAt: reservationExpiresAt,
+      ttlMinutes: RESERVATION_TTL_MINUTES,
+      items: calculation.items,
+      appliedCoupon: calculation.appliedCoupon
     });
   } catch (error) {
-    console.error("[Razorpay create-order Error]:", error);
-    return res.status(500).json({ success: false, message: error.message || "Failed to create Razorpay order" });
+    console.error("[Create Order Error]:", error);
+    return res.status(500).json({
+      success: false,
+      message: error.message || "Failed to process checkout and reserve inventory."
+    });
   }
 });
 
 /**
  * POST /api/payment/verify-payment
- * Verifies Razorpay payment signature using HMAC SHA256
+ * Cryptographically verifies Razorpay signature and commits FCFS inventory reservation.
  */
-router.post("/verify-payment", (req, res) => {
+router.post("/verify-payment", async (req, res) => {
   try {
-    const { razorpay_order_id, razorpay_payment_id, razorpay_signature } = req.body;
+    const {
+      razorpay_order_id,
+      razorpay_payment_id,
+      razorpay_signature,
+      order_id
+    } = req.body;
+
     const { keySecret } = getRazorpayKeys();
 
-    if (!razorpay_order_id || !razorpay_payment_id) {
+    if (!razorpay_order_id || !razorpay_payment_id || !razorpay_signature) {
       return res.status(400).json({
         success: false,
-        message: "Missing order_id or payment_id for verification"
+        verified: false,
+        message: "Missing Razorpay order ID, payment ID, or signature for verification."
       });
     }
 
-    // Generate expected HMAC SHA256 signature
-    const generatedSignature = crypto
+    // 1. Strict HMAC SHA256 Signature Verification
+    const expectedSignature = crypto
       .createHmac("sha256", keySecret)
       .update(`${razorpay_order_id}|${razorpay_payment_id}`)
       .digest("hex");
 
-    // Valid if standard HMAC matches, or if explicit sandbox test signatures are used
-    const isValid = 
-      generatedSignature === razorpay_signature ||
-      razorpay_signature === "test_sandbox_signature" ||
-      (razorpay_signature === "test_sig" && razorpay_payment_id.startsWith("pay_test_"));
+    const isMatch = crypto.timingSafeEqual(
+      Buffer.from(expectedSignature, 'utf8'),
+      Buffer.from(razorpay_signature, 'utf8')
+    );
 
-    if (isValid) {
-      // Securely record payment transaction in Supabase PostgreSQL
-      recordServerPaymentTransaction({
-        orderId: razorpay_order_id,
-        razorpayOrderId: razorpay_order_id,
+    if (!isMatch) {
+      return res.status(400).json({
+        success: false,
+        verified: false,
+        message: "Cryptographic payment signature mismatch. Verification rejected."
+      });
+    }
+
+    // 2. Fetch internal order and check current state
+    const targetOrderId = order_id || razorpay_order_id;
+    let { data: order } = await supabaseAdmin
+      .from('orders')
+      .select('*')
+      .or(`order_id.eq.${targetOrderId},payment_id.eq.${razorpay_order_id}`)
+      .maybeSingle();
+
+    if (!order) {
+      return res.status(404).json({
+        success: false,
+        verified: true,
+        message: "Payment signature valid but internal order record not found."
+      });
+    }
+
+    // Idempotency: If already paid, return confirmed immediately
+    if (order.payment_status === 'paid' && order.order_status === 'Paid') {
+      return res.json({
+        success: true,
+        verified: true,
+        orderId: order.order_id,
+        paymentId: razorpay_payment_id,
+        message: "Payment already verified and committed."
+      });
+    }
+
+    // 3. Reconcile Reservation Expiry vs Late Payment
+    const now = new Date();
+    const expiresAtStr = order.notes?.reservation_expires_at;
+    const isExpired = expiresAtStr && new Date(expiresAtStr) < now;
+
+    if (isExpired && order.order_status === 'Cancelled') {
+      // Late Payment Scenario: customer paid after 10-minute window expired
+      console.warn(`[Late Payment Detected]: Order ${order.order_id} was paid after reservation expiry.`);
+      await recordServerPaymentTransaction({
+        orderId: order.order_id,
+        razorpayOrderId,
         razorpayPaymentId: razorpay_payment_id,
         razorpaySignature: razorpay_signature,
-        amount: req.body.amount,
-        currency: req.body.currency || "INR",
-        status: "verified",
+        amount: order.total_amount,
+        currency: order.currency,
+        status: "late_payment_reconciliation_needed",
         method: "razorpay",
         verified: true,
-        rawResponse: req.body
-      }).catch(err => console.warn("[Payment Supabase Audit Notice]:", err));
+        rawResponse: { note: "Paid after reservation expired, flagged for manual dispatch or automated refund" }
+      });
 
       return res.json({
         success: true,
         verified: true,
-        message: "Razorpay payment verified successfully",
-        paymentId: razorpay_payment_id,
-        orderId: razorpay_order_id,
-        timestamp: new Date().toISOString()
-      });
-    } else {
-      return res.status(400).json({
-        success: false,
-        verified: false,
-        message: "Invalid payment signature verification failed"
+        latePayment: true,
+        orderId: order.order_id,
+        message: "Payment captured successfully. Because the checkout reservation window elapsed, our concierge is securing your allocation."
       });
     }
+
+    // 4. Commit Inventory Reservation and Transition State to Paid
+    await commitInventoryReservation({
+      orderId: order.order_id,
+      items: order.items || []
+    });
+
+    await recordServerPaymentTransaction({
+      orderId: order.order_id,
+      razorpayOrderId,
+      razorpayPaymentId: razorpay_payment_id,
+      razorpaySignature: razorpay_signature,
+      amount: order.total_amount,
+      currency: order.currency,
+      status: "verified",
+      method: "razorpay",
+      verified: true,
+      rawResponse: req.body
+    });
+
+    return res.json({
+      success: true,
+      verified: true,
+      orderId: order.order_id,
+      paymentId: razorpay_payment_id,
+      status: "Paid & Verified",
+      timestamp: new Date().toISOString()
+    });
   } catch (error) {
-    console.error("[Razorpay verify-payment Error]:", error);
+    console.error("[Verify Payment Error]:", error);
     return res.status(500).json({
       success: false,
       message: error.message || "Internal error during payment verification"
     });
   }
+});
+
+/**
+ * POST /api/payment/webhook
+ * Official Razorpay Webhook Endpoint
+ * Verifies X-Razorpay-Signature with raw request body, handles out-of-order events idempotently.
+ */
+router.post("/webhook", async (req, res) => {
+  try {
+    const signature = req.headers["x-razorpay-signature"];
+    const { webhookSecret } = getRazorpayKeys();
+
+    if (!signature) {
+      return res.status(400).json({ error: "Missing webhook signature header" });
+    }
+
+    const rawBody = req.rawBody ? req.rawBody.toString('utf8') : JSON.stringify(req.body);
+
+    const expectedSignature = crypto
+      .createHmac("sha256", webhookSecret)
+      .update(rawBody)
+      .digest("hex");
+
+    if (signature !== expectedSignature) {
+      console.warn("[Razorpay Webhook Warning]: Invalid signature verification failed.");
+      return res.status(400).json({ error: "Invalid webhook signature" });
+    }
+
+    const event = req.body;
+    const eventId = event?.event_id || `evt_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`;
+    const eventType = event?.event;
+
+    // Idempotency: Deduplicate webhook event
+    const recordResult = await recordWebhookEvent({
+      eventId,
+      eventType,
+      entityId: event?.payload?.payment?.entity?.id || event?.payload?.order?.entity?.id,
+      payload: event
+    });
+
+    if (recordResult?.duplicate) {
+      return res.status(200).json({ status: "ignored_duplicate" });
+    }
+
+    console.log(`[Razorpay Webhook Event]: ${eventType} (ID: ${eventId})`);
+
+    // Handle supported payment lifecycle events
+    if (eventType === "payment.captured" || eventType === "order.paid") {
+      const paymentEntity = event.payload?.payment?.entity;
+      const razorpayOrderId = paymentEntity?.order_id;
+      const razorpayPaymentId = paymentEntity?.id;
+
+      if (razorpayOrderId) {
+        const { data: order } = await supabaseAdmin
+          .from('orders')
+          .select('*')
+          .or(`order_id.eq.${razorpayOrderId},payment_id.eq.${razorpayOrderId}`)
+          .maybeSingle();
+
+        if (order && order.payment_status !== 'paid') {
+          await commitInventoryReservation({
+            orderId: order.order_id,
+            items: order.items || []
+          });
+
+          await recordServerPaymentTransaction({
+            orderId: order.order_id,
+            razorpayOrderId,
+            razorpayPaymentId,
+            razorpaySignature: signature,
+            amount: paymentEntity?.amount ? paymentEntity.amount / 100 : order.total_amount,
+            currency: paymentEntity?.currency || 'INR',
+            status: "captured",
+            method: "razorpay_webhook",
+            verified: true,
+            rawResponse: event
+          });
+        }
+      }
+    } else if (eventType === "payment.failed") {
+      const paymentEntity = event.payload?.payment?.entity;
+      const razorpayOrderId = paymentEntity?.order_id;
+
+      if (razorpayOrderId) {
+        const { data: order } = await supabaseAdmin
+          .from('orders')
+          .select('*')
+          .or(`order_id.eq.${razorpayOrderId},payment_id.eq.${razorpayOrderId}`)
+          .maybeSingle();
+
+        if (order && order.payment_status === 'pending') {
+          await releaseInventoryReservation({
+            orderId: order.order_id,
+            reason: `payment_failed: ${paymentEntity?.error_description || 'Gateway decline'}`
+          });
+        }
+      }
+    }
+
+    return res.status(200).json({ status: "success", eventId });
+  } catch (error) {
+    console.error("[Razorpay Webhook Error]:", error);
+    return res.status(500).json({ error: error.message });
+  }
+});
+
+/**
+ * POST /api/payment/cleanup-reservations
+ * Protected periodic cron cleanup endpoint for releasing expired inventory
+ */
+router.post("/cleanup-reservations", async (req, res) => {
+  const cronSecret = req.headers["x-cron-secret"] || req.query.secret;
+  const expectedSecret = process.env.CRON_SECRET || "eden_threads_cron_secret_luxury";
+
+  if (cronSecret !== expectedSecret) {
+    return res.status(401).json({ error: "Unauthorized cron execution" });
+  }
+
+  const result = await cleanupExpiredReservations();
+  return res.json(result);
 });
 
 export default router;

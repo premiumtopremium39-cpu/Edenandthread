@@ -16,8 +16,13 @@ app.use(cors({
   credentials: true
 }));
 
-// Express body parser with 50mb limit for PNG uploads
-app.use(express.json({ limit: "50mb" }));
+// Express body parser with 50mb limit and rawBody capture for webhook cryptographic verification
+app.use(express.json({
+  limit: "50mb",
+  verify: (req, res, buf) => {
+    req.rawBody = buf;
+  }
+}));
 app.use(express.urlencoded({ limit: "50mb", extended: true }));
 
 // Admin API routes (Supabase Service-Role guaranteed persistence)

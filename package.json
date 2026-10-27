@@ -12,6 +12,7 @@
     "dev": "concurrently \"npm run dev:client\" \"npm run dev:server\"",
     "build": "vite build",
     "lint": "oxlint",
+    "test": "node scratch/test-fcfs-hardening.js",
     "preview": "vite preview"
   },
   "dependencies": {
