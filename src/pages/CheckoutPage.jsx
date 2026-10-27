@@ -205,7 +205,7 @@ export default function CheckoutPage({ cartItems, onOrderComplete, showToast, us
         return;
       }
 
-      // Step 2: Configure Razorpay Checkout Options with custom Payment Options config_id
+      // Step 2: Configure Razorpay Checkout Options with custom Payment Options config_id and method filters
       const options = {
         key: activeKeyId,
         config_id: activeConfigId,
@@ -215,6 +215,17 @@ export default function CheckoutPage({ cartItems, onOrderComplete, showToast, us
         description: `Order ${orderId} • Luxury Artisanal Linen`,
         image: 'https://images.unsplash.com/photo-1490481651871-ab68de25d43d?w=128&auto=format&fit=crop&q=80',
         order_id: orderData?.order?.id ? orderId : undefined,
+        config: {
+          display: {
+            hide: [
+              { method: 'emi' },
+              { method: 'paylater' }
+            ],
+            preferences: {
+              show_default_blocks: true
+            }
+          }
+        },
         handler: async function (response) {
           setProcessingStatus('Verifying payment signature with server...');
           try {
