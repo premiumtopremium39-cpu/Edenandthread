@@ -71,20 +71,30 @@ export default function ProductDetailPage({
   const [newReview, setNewReview] = useState({ author: '', rating: 5, title: '', comment: '' });
   const [reviewSubmitted, setReviewSubmitted] = useState(false);
 
-  // Fetch reviews from Supabase / API when product loads
+  // Fetch reviews from Supabase / API when product loads or updates
   useEffect(() => {
     async function loadCloudReviews() {
       if (!product?.id) return;
       try {
         const cloudReviews = await reviewService.getProductReviews(product.id);
-        if (cloudReviews && cloudReviews.length > 0) {
+        if (cloudReviews) {
           setReviews(cloudReviews);
+          try {
+            localStorage.setItem(`eden_threads_reviews_${product.id}`, JSON.stringify(cloudReviews));
+          } catch {}
         }
       } catch (err) {
         console.warn("[Reviews Notice]:", err);
       }
     }
     loadCloudReviews();
+
+    const handleCloudReviewUpdate = () => {
+      loadCloudReviews();
+    };
+
+    window.addEventListener('eden_threads_review_change', handleCloudReviewUpdate);
+    return () => window.removeEventListener('eden_threads_review_change', handleCloudReviewUpdate);
   }, [product?.id]);
 
   const handleReviewSubmit = async (e) => {
@@ -536,88 +546,14 @@ export default function ProductDetailPage({
               </h2>
             </div>
             
-            <button
-              className="btn btn-secondary"
-              onClick={() => setShowReviewForm(!showReviewForm)}
-              style={{ fontSize: '0.75rem', padding: '0.75rem 1.5rem' }}
-            >
-              {showReviewForm ? 'Close Review Form' : 'Write a Review'}
-            </button>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', backgroundColor: 'var(--bg-secondary)', padding: '6px 14px', borderRadius: '4px', border: '1px solid var(--border-light)' }}>
+              <div style={{ color: 'var(--gold)', fontSize: '0.85rem' }}>
+                <i className="fa-solid fa-star"></i>
+              </div>
+              <span style={{ fontSize: '0.85rem', fontWeight: 700, color: 'var(--green-dark)' }}>{avgRating}</span>
+              <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>/ 5.0</span>
+            </div>
           </div>
-
-          {/* Write a Review Modal / Expandable Form */}
-          {showReviewForm && (
-            <form onSubmit={handleReviewSubmit} style={{ backgroundColor: 'var(--bg-secondary)', border: '1px solid var(--border-light)', padding: '2rem', marginBottom: '2.5rem', boxShadow: 'var(--shadow-soft)' }}>
-              {reviewSubmitted ? (
-                <div style={{ padding: '2rem', textAlign: 'center', color: 'var(--green-dark)' }}>
-                  <i className="fa-solid fa-circle-check" style={{ fontSize: '2.5rem', color: 'var(--gold)', marginBottom: '1rem', display: 'block' }}></i>
-                  <h3 style={{ fontFamily: 'var(--font-display)', fontSize: '1.5rem', marginBottom: '0.5rem' }}>Thank You for Your Feedback</h3>
-                  <p style={{ fontSize: '0.9rem', color: 'var(--text-secondary)' }}>Your verified patron review has been published to this garment.</p>
-                </div>
-              ) : (
-                <>
-                  <h3 style={{ fontFamily: 'var(--font-display)', fontSize: '1.25rem', color: 'var(--green-dark)', marginBottom: '1.25rem' }}>
-                    Share Your Experience with this Linen Garment
-                  </h3>
-              
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem', marginBottom: '1rem' }}>
-                <div>
-                  <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: 600, textTransform: 'uppercase', marginBottom: '0.4rem', color: 'var(--text-secondary)' }}>Your Name</label>
-                  <input 
-                    type="text" 
-                    required 
-                    placeholder="Julian Vance"
-                    value={newReview.author}
-                    onChange={(e) => setNewReview({ ...newReview, author: e.target.value })}
-                    style={{ width: '100%', padding: '0.75rem', border: '1px solid var(--border-medium)', backgroundColor: '#fff' }}
-                  />
-                </div>
-                <div>
-                  <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: 600, textTransform: 'uppercase', marginBottom: '0.4rem', color: 'var(--text-secondary)' }}>Star Rating</label>
-                  <select 
-                    value={newReview.rating}
-                    onChange={(e) => setNewReview({ ...newReview, rating: e.target.value })}
-                    style={{ width: '100%', padding: '0.75rem', border: '1px solid var(--border-medium)', backgroundColor: '#fff' }}
-                  >
-                    <option value="5">★★★★★ - 5 Stars (Exceptional)</option>
-                    <option value="4">★★★★☆ - 4 Stars (Very Good)</option>
-                    <option value="3">★★★☆☆ - 3 Stars (Average)</option>
-                    <option value="2">★★☆☆☆ - 2 Stars (Below Average)</option>
-                    <option value="1">★☆☆☆☆ - 1 Star (Poor)</option>
-                  </select>
-                </div>
-              </div>
-
-              <div style={{ marginBottom: '1rem' }}>
-                <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: 600, textTransform: 'uppercase', marginBottom: '0.4rem', color: 'var(--text-secondary)' }}>Review Headline</label>
-                <input 
-                  type="text" 
-                  placeholder="e.g. Perfect for tropical holidays"
-                  value={newReview.title}
-                  onChange={(e) => setNewReview({ ...newReview, title: e.target.value })}
-                  style={{ width: '100%', padding: '0.75rem', border: '1px solid var(--border-medium)', backgroundColor: '#fff' }}
-                />
-              </div>
-
-              <div style={{ marginBottom: '1.5rem' }}>
-                <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: 600, textTransform: 'uppercase', marginBottom: '0.4rem', color: 'var(--text-secondary)' }}>Review Comments</label>
-                <textarea 
-                  required 
-                  rows={3}
-                  placeholder="Tell others how the linen fabric feels, the fit, and your experience..."
-                  value={newReview.comment}
-                  onChange={(e) => setNewReview({ ...newReview, comment: e.target.value })}
-                  style={{ width: '100%', padding: '0.75rem', border: '1px solid var(--border-medium)', backgroundColor: '#fff', resize: 'vertical' }}
-                />
-              </div>
-
-              <button type="submit" className="btn btn-primary" style={{ padding: '0.75rem 2rem', fontSize: '0.8rem' }}>
-                Submit Verified Review
-              </button>
-            </>
-          )}
-        </form>
-      )}
 
           {/* Reviews Grid */}
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: '1.5rem' }}>
