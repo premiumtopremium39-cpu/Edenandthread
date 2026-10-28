@@ -13,6 +13,11 @@ import {
   recordServerPaymentTransaction,
   RESERVATION_TTL_MINUTES
 } from "./supabase.js";
+import {
+  sendEmail,
+  renderCustomerOrderEmail,
+  renderStoreOwnerOrderEmail
+} from "./email.js";
 
 dotenv.config();
 
@@ -37,6 +42,91 @@ const getRazorpayClient = () => {
   }
   return null;
 };
+
+/**
+ * Idempotently dispatches Customer Confirmation & Store Owner Notification emails.
+ * Deduplicates using orders.notes.email_notifications to guarantee no repeated emails.
+ */
+export async function dispatchOrderConfirmationEmails(order) {
+  if (!order || !order.order_id) return { success: false, reason: 'invalid_order' };
+
+  try {
+    // Check if order already has email confirmation logged in notes
+    const currentNotes = order.notes || {};
+    const emailNotifs = currentNotes.email_notifications || {};
+
+    if (emailNotifs.customer_confirmed_at && emailNotifs.owner_notified_at) {
+      console.log(`[Email Idempotency]: Confirmation emails already dispatched for order ${order.order_id}. Skipping.`);
+      return { success: true, duplicate: true };
+    }
+
+    const customerEmail = order.customer_email || order.shipping_address?.email;
+    const ownerEmail = process.env.STORE_OWNER_EMAIL;
+
+    const updatedNotifs = { ...emailNotifs };
+
+    // 1. Send Customer Order Confirmation Email
+    if (customerEmail && !emailNotifs.customer_confirmed_at) {
+      try {
+        const customerMailPayload = renderCustomerOrderEmail(order);
+        const sendRes = await sendEmail({
+          to: customerEmail,
+          subject: customerMailPayload.subject,
+          html: customerMailPayload.html,
+          text: customerMailPayload.text,
+          idempotencyKey: `cust_confirm_${order.order_id}`
+        });
+
+        if (sendRes.success) {
+          updatedNotifs.customer_confirmed_at = new Date().toISOString();
+          updatedNotifs.customer_message_id = sendRes.messageId;
+        }
+      } catch (custErr) {
+        console.error(`[Customer Email Error for ${order.order_id}]:`, custErr.message);
+      }
+    }
+
+    // 2. Send Store Owner Pick List & Fulfilment Alert Email
+    if (ownerEmail && !emailNotifs.owner_notified_at) {
+      try {
+        const ownerMailPayload = renderStoreOwnerOrderEmail(order);
+        const sendRes = await sendEmail({
+          to: ownerEmail,
+          subject: ownerMailPayload.subject,
+          html: ownerMailPayload.html,
+          text: ownerMailPayload.text,
+          idempotencyKey: `owner_alert_${order.order_id}`
+        });
+
+        if (sendRes.success) {
+          updatedNotifs.owner_notified_at = new Date().toISOString();
+          updatedNotifs.owner_message_id = sendRes.messageId;
+        }
+      } catch (ownerErr) {
+        console.error(`[Owner Email Error for ${order.order_id}]:`, ownerErr.message);
+      }
+    }
+
+    // Update orders.notes with notification records in Supabase
+    if (supabaseAdmin) {
+      await supabaseAdmin.from('orders').update({
+        notes: {
+          ...currentNotes,
+          email_notifications: updatedNotifs
+        }
+      }).eq('order_id', order.order_id);
+    }
+
+    return {
+      success: true,
+      customerEmailSent: Boolean(updatedNotifs.customer_confirmed_at),
+      ownerEmailSent: Boolean(updatedNotifs.owner_notified_at)
+    };
+  } catch (err) {
+    console.error(`[Order Email Dispatch Error for ${order.order_id}]:`, err.message);
+    return { success: false, error: err.message };
+  }
+}
 
 /**
  * GET /api/payment/config
@@ -182,6 +272,26 @@ router.post("/create-order", async (req, res) => {
         await releaseInventoryReservation({ orderId: internalOrderId, reason: 'order_creation_failed' });
         throw new Error(`Failed to record COD order: ${codErr.message}`);
       }
+
+      // Trigger asynchronous email dispatch for COD order
+      dispatchOrderConfirmationEmails({
+        order_id: internalOrderId,
+        customer_name: shippingDetails.name,
+        customer_email: shippingDetails.email,
+        customer_phone: shippingDetails.phone || null,
+        shipping_address: shippingDetails,
+        items: calculation.items,
+        subtotal: calculation.subtotal,
+        discount: calculation.discount,
+        total_amount: calculation.finalTotal,
+        currency: 'INR',
+        payment_id: 'PAYABLE_ON_DELIVERY',
+        payment_status: 'pending',
+        order_status: 'Placed',
+        notes: {
+          payment_method: 'cod'
+        }
+      }).catch(err => console.error('[Async COD Email Dispatch Warning]:', err.message));
 
       return res.json({
         success: true,
@@ -398,6 +508,16 @@ router.post("/verify-payment", async (req, res) => {
       rawResponse: req.body
     });
 
+    // 5. Asynchronously dispatch Customer & Store Owner confirmation emails (idempotent)
+    const paidOrderSnapshot = {
+      ...order,
+      payment_id: razorpay_payment_id,
+      payment_status: 'paid',
+      order_status: 'Paid'
+    };
+    dispatchOrderConfirmationEmails(paidOrderSnapshot)
+      .catch(err => console.error('[Async Order Email Dispatch Error in verify-payment]:', err.message));
+
     return res.json({
       success: true,
       verified: true,
@@ -490,6 +610,16 @@ router.post("/webhook", async (req, res) => {
             verified: true,
             rawResponse: event
           });
+
+          // Dispatch confirmation emails idempotently if browser did not complete callback
+          const webhookPaidSnapshot = {
+            ...order,
+            payment_id: razorpayPaymentId,
+            payment_status: 'paid',
+            order_status: 'Paid'
+          };
+          dispatchOrderConfirmationEmails(webhookPaidSnapshot)
+            .catch(err => console.error('[Async Webhook Order Email Warning]:', err.message));
         }
       }
     } else if (eventType === "payment.failed") {

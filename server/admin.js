@@ -2,6 +2,8 @@ import express from 'express';
 import fs from 'fs';
 import path from 'path';
 import { supabaseAdmin } from './supabase.js';
+import { createShadowfaxShipment, checkShadowfaxServiceability, trackShadowfaxShipment } from './shadowfax.js';
+import { sendEmail, renderCustomerDispatchEmail } from './email.js';
 
 const router = express.Router();
 
@@ -191,12 +193,51 @@ router.delete('/promos/:id', checkAdmin, async (req, res) => {
   }
 });
 
-// 4. Orders
+// 4. Orders & Fulfilment Workflow
+router.get('/orders', checkAdmin, async (req, res) => {
+  try {
+    const { data: orders, error } = await supabaseAdmin
+      .from('orders')
+      .select('*')
+      .order('created_at', { ascending: false });
+
+    if (error) throw error;
+    res.json({ success: true, data: orders || [] });
+  } catch (err) {
+    console.error('[Server Admin Get Orders Error]:', err);
+    res.status(500).json({ error: err.message });
+  }
+});
+
 router.put('/orders/:id/status', checkAdmin, async (req, res) => {
   try {
     const orderId = req.params.id;
-    const { status, carrier, trackingNumber } = req.body;
-    const updateObj = { order_status: status };
+    const { status, carrier, trackingNumber, fulfilmentStatus } = req.body;
+
+    const { data: currentOrder } = await supabaseAdmin
+      .from('orders')
+      .select('*')
+      .eq('order_id', orderId)
+      .maybeSingle();
+
+    if (!currentOrder) {
+      return res.status(404).json({ error: 'Order not found' });
+    }
+
+    const currentNotes = currentOrder.notes || {};
+    const updatedNotes = {
+      ...currentNotes,
+      fulfilment_status: fulfilmentStatus || currentNotes.fulfilment_status || status,
+      status_history: [
+        ...(currentNotes.status_history || []),
+        { status, timestamp: new Date().toISOString(), updatedBy: req.adminUser?.email || 'admin' }
+      ]
+    };
+
+    const updateObj = {
+      order_status: status,
+      notes: updatedNotes
+    };
     if (carrier) updateObj.carrier = carrier;
     if (trackingNumber) updateObj.tracking_number = trackingNumber;
 
@@ -211,6 +252,200 @@ router.put('/orders/:id/status', checkAdmin, async (req, res) => {
     res.json({ success: true, data });
   } catch (err) {
     console.error('[Server Admin Update Order Status Error]:', err);
+    res.status(500).json({ error: err.message });
+  }
+});
+
+/**
+ * Check forward logistics serviceability for an order destination
+ */
+router.get('/orders/:id/serviceability', checkAdmin, async (req, res) => {
+  try {
+    const orderId = req.params.id;
+    const { data: order, error } = await supabaseAdmin
+      .from('orders')
+      .select('shipping_address')
+      .eq('order_id', orderId)
+      .single();
+
+    if (error || !order) return res.status(404).json({ error: 'Order not found' });
+
+    const pincode = order.shipping_address?.zip;
+    const serviceability = await checkShadowfaxServiceability({ pincode });
+    res.json({ success: true, serviceability });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+/**
+ * POST /api/admin/orders/:id/book-shipment
+ * Books a forward delivery shipment with Shadowfax
+ * Validates order is packed, stores AWB and shipment details, sends dispatch email to customer
+ */
+router.post('/orders/:id/book-shipment', checkAdmin, async (req, res) => {
+  try {
+    const orderId = req.params.id;
+
+    const { data: order, error } = await supabaseAdmin
+      .from('orders')
+      .select('*')
+      .eq('order_id', orderId)
+      .single();
+
+    if (error || !order) {
+      return res.status(404).json({ error: 'Order not found' });
+    }
+
+    const notes = order.notes || {};
+
+    // 1. Idempotency Lock: Check if already booked
+    if (order.tracking_number && notes.shadowfax_booked) {
+      return res.json({
+        success: true,
+        alreadyBooked: true,
+        awbNumber: order.tracking_number,
+        carrier: order.carrier || 'Shadowfax',
+        trackingUrl: notes.tracking_url,
+        message: `Shipment already booked with Shadowfax. AWB: ${order.tracking_number}`
+      });
+    }
+
+    const shipping = order.shipping_address || {};
+    const isCod = notes.payment_method === 'cod' || order.payment_id === 'PAYABLE_ON_DELIVERY';
+
+    // 2. Call Shadowfax Forward Logistics API
+    const bookingResult = await createShadowfaxShipment({
+      orderId: order.order_id,
+      customerDetails: {
+        name: order.customer_name || shipping.name,
+        contact: order.customer_phone || shipping.phone,
+        address: shipping.address,
+        apartment: shipping.apartment,
+        city: shipping.city,
+        state: shipping.state,
+        zip: shipping.zip
+      },
+      items: order.items || [],
+      totalAmount: order.total_amount,
+      paymentMethod: isCod ? 'cod' : 'prepaid',
+      codAmount: isCod ? order.total_amount : 0
+    });
+
+    if (!bookingResult.success) {
+      return res.status(502).json({
+        error: bookingResult.error || 'Shadowfax shipment booking failed.'
+      });
+    }
+
+    const awbNumber = bookingResult.awbNumber;
+    const trackingUrl = bookingResult.trackingUrl;
+
+    // 3. Update Order in Supabase
+    const updatedNotes = {
+      ...notes,
+      shadowfax_booked: true,
+      shadowfax_shipment_id: bookingResult.shipmentId,
+      shadowfax_booked_at: new Date().toISOString(),
+      tracking_url: trackingUrl,
+      fulfilment_status: 'Shipment Booked',
+      label_url: bookingResult.labelUrl || null,
+      shadowfax_sandbox: Boolean(bookingResult.sandbox),
+      status_history: [
+        ...(notes.status_history || []),
+        {
+          status: 'Dispatched',
+          fulfilmentStatus: 'Shipment Booked',
+          timestamp: new Date().toISOString(),
+          awb: awbNumber,
+          courier: 'Shadowfax'
+        }
+      ]
+    };
+
+    const { data: updatedOrder, error: updateErr } = await supabaseAdmin
+      .from('orders')
+      .update({
+        order_status: 'Dispatched',
+        carrier: 'Shadowfax',
+        tracking_number: awbNumber,
+        notes: updatedNotes
+      })
+      .eq('order_id', orderId)
+      .select()
+      .single();
+
+    if (updateErr) {
+      console.warn('[Order Update Post-Booking Warning]:', updateErr.message);
+    }
+
+    // 4. Send Dispatch & Tracking Notification Email to Customer
+    const customerEmail = order.customer_email || shipping.email;
+    if (customerEmail) {
+      try {
+        const dispatchEmail = renderCustomerDispatchEmail(order, {
+          courier: 'Shadowfax Express Forward Logistics',
+          awbNumber,
+          trackingUrl
+        });
+
+        sendEmail({
+          to: customerEmail,
+          subject: dispatchEmail.subject,
+          html: dispatchEmail.html,
+          text: dispatchEmail.text,
+          idempotencyKey: `cust_dispatch_${order.order_id}_${awbNumber}`
+        }).then(emailRes => {
+          if (emailRes.success) {
+            supabaseAdmin.from('orders').update({
+              notes: {
+                ...updatedNotes,
+                dispatch_email_sent_at: new Date().toISOString()
+              }
+            }).eq('order_id', orderId);
+          }
+        }).catch(e => console.warn('[Dispatch Email Async Error]:', e.message));
+      } catch (emErr) {
+        console.error('[Dispatch Email Error]:', emErr.message);
+      }
+    }
+
+    res.json({
+      success: true,
+      awbNumber,
+      carrier: 'Shadowfax',
+      shipmentId: bookingResult.shipmentId,
+      trackingUrl,
+      labelUrl: bookingResult.labelUrl,
+      sandbox: Boolean(bookingResult.sandbox),
+      order: updatedOrder || order
+    });
+  } catch (err) {
+    console.error('[Book Shipment Error]:', err);
+    res.status(500).json({ error: err.message });
+  }
+});
+
+/**
+ * GET /api/admin/orders/:id/track
+ * Track live courier status for an order
+ */
+router.get('/orders/:id/track', checkAdmin, async (req, res) => {
+  try {
+    const orderId = req.params.id;
+    const { data: order, error } = await supabaseAdmin
+      .from('orders')
+      .select('tracking_number, carrier, notes')
+      .eq('order_id', orderId)
+      .single();
+
+    if (error || !order || !order.tracking_number) {
+      return res.status(404).json({ error: 'Order or tracking number not found' });
+    }
+
+    const tracking = await trackShadowfaxShipment({ awbNumber: order.tracking_number });
+    res.json({ success: true, tracking });
+  } catch (err) {
     res.status(500).json({ error: err.message });
   }
 });

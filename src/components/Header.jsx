@@ -196,6 +196,13 @@ export default function Header({
                         <i className="fa-solid fa-plane-departure" style={{ marginRight: '0.5rem', width: '14px' }}></i> Track Orders &amp; History
                       </a>
                     </li>
+                    {(user.role === 'admin' || user.email === 'admin@mail.com' || user.email === 'admin@edenthreads.luxury') && (
+                      <li>
+                        <a href="#admin" onClick={() => setIsDropdownOpen(false)} style={{ display: 'block', transition: 'var(--transition-fast)', color: '#D4AF37', fontWeight: 700 }}>
+                          <i className="fa-solid fa-boxes-packing" style={{ marginRight: '0.5rem', width: '14px' }}></i> Admin &amp; Fulfilment
+                        </a>
+                      </li>
+                    )}
                     <li>
                       <a href="#checkout" onClick={() => setIsDropdownOpen(false)} style={{ display: 'block', transition: 'var(--transition-fast)' }}>
                         <i className="fa-solid fa-credit-card" style={{ marginRight: '0.5rem', width: '14px' }}></i> Saved Checkout Info

@@ -20,6 +20,7 @@ const JournalPage = lazy(() => import('./pages/JournalPage'));
 const CheckoutPage = lazy(() => import('./pages/CheckoutPage'));
 const LoginPage = lazy(() => import('./pages/LoginPage'));
 const OrderTrackingPage = lazy(() => import('./pages/OrderTrackingPage'));
+const AdminPage = lazy(() => import('./pages/AdminPage'));
 
 // Supabase Integration
 import { 
@@ -909,11 +910,13 @@ export default function App() {
               return <JournalPage />;
             case 'admin':
               return (
-                <div style={{ padding: '6rem 2rem', textAlign: 'center', minHeight: '60vh' }}>
-                  <h2 style={{ fontFamily: 'Playfair Display, serif', fontSize: '2rem', marginBottom: '1rem' }}>Restricted Area</h2>
-                  <p style={{ color: 'var(--text-secondary)', marginBottom: '2rem' }}>Administrative operations are managed through the dedicated executive dashboard.</p>
-                  <a href="#home" className="btn-luxury" style={{ display: 'inline-block', padding: '0.8rem 2rem' }}>Return to Storefront</a>
-                </div>
+                <AdminPage
+                  user={user}
+                  orders={orders}
+                  products={products}
+                  onUpdateOrderStatus={handleUpdateOrderStatus}
+                  showToast={showToast}
+                />
               );
             case 'track':
               return (

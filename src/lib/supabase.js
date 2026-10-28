@@ -378,7 +378,7 @@ export const orderService = {
     return formatOrderRecord(data);
   },
 
-  async updateOrderStatus(orderId, newStatus, carrier = null, trackingNumber = null) {
+  async updateOrderStatus(orderId, newStatus, carrier = null, trackingNumber = null, fulfilmentStatus = null) {
     const updateObj = { order_status: newStatus };
     if (carrier) updateObj.carrier = carrier;
     if (trackingNumber) updateObj.tracking_number = trackingNumber;
@@ -401,10 +401,24 @@ export const orderService = {
     // Server fallback using service-role key
     const serverResult = await callAdminServerApi(`/api/admin/orders/${orderId}/status`, {
       method: 'PUT',
-      body: JSON.stringify({ status: newStatus, carrier, trackingNumber }),
+      body: JSON.stringify({ status: newStatus, carrier, trackingNumber, fulfilmentStatus }),
     });
     if (serverResult?.data) return formatOrderRecord(serverResult.data);
     return null;
+  },
+
+  async bookShadowfaxShipment(orderId) {
+    const serverResult = await callAdminServerApi(`/api/admin/orders/${orderId}/book-shipment`, {
+      method: 'POST'
+    });
+    return serverResult;
+  },
+
+  async checkShadowfaxServiceability(orderId) {
+    const serverResult = await callAdminServerApi(`/api/admin/orders/${orderId}/serviceability`, {
+      method: 'GET'
+    });
+    return serverResult;
   },
 
   async trackOrder(orderId, email = null) {
