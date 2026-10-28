@@ -5,7 +5,14 @@ export default function BrandValues() {
     <section className="brand-values" id="brand-values">
       <div className="container-full">
         <div className="values-grid">
-          <div className="values-img-panel" style={{ backgroundImage: `url('/assets/mens_linen_editorial.jpeg')` }}></div>
+          <div 
+            className="values-img-panel" 
+            style={{ 
+              backgroundImage: `url('/assets/mens_linen_editorial.jpeg')`,
+              backgroundPosition: 'center center',
+              backgroundSize: 'cover'
+            }}
+          ></div>
           <div className="values-text-panel">
             <span className="panel-meta">The Pieces That Matter Most</span>
             <h2 className="panel-title">Crafted for Comfort. Designed for Your Life.</h2>
