@@ -205,7 +205,7 @@ DECLARE
     user_role TEXT := 'customer';
 BEGIN
     -- If user email is admin, assign admin role automatically
-    IF NEW.email = 'admin@mail.com' OR NEW.email = 'admin@edenthreads.luxury' THEN
+    IF NEW.email = 'edenandthreadlogin@gmail.com' OR NEW.email = 'admin@mail.com' OR NEW.email = 'admin@edenthreads.luxury' THEN
         user_role := 'admin';
     END IF;
 

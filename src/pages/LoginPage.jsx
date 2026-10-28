@@ -44,7 +44,7 @@ export default function LoginPage({ showToast, onLoginSimulate }) {
           id: `usr_${Date.now()}`,
           name: isSignIn ? email.split('@')[0] : name.trim(),
           email: email.trim(),
-          role: email.trim() === 'admin@mail.com' ? 'admin' : 'customer'
+          role: (email.trim() === 'edenandthreadlogin@gmail.com' || email.trim() === 'admin@mail.com') ? 'admin' : 'customer'
         };
         if (onLoginSimulate) onLoginSimulate(mockUser);
         showToast(`<i class="fa-solid fa-circle-check"></i> Signed in as ${mockUser.name} (Simulated mode - Connect Supabase in .env for production)`);

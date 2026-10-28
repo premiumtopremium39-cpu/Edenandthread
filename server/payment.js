@@ -61,7 +61,7 @@ export async function dispatchOrderConfirmationEmails(order) {
     }
 
     const customerEmail = order.customer_email || order.shipping_address?.email;
-    const ownerEmail = process.env.STORE_OWNER_EMAIL;
+    const ownerEmail = process.env.STORE_OWNER_EMAIL || 'edenandthreadlogin@gmail.com';
 
     const updatedNotifs = { ...emailNotifs };
 

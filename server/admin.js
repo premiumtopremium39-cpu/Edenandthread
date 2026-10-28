@@ -34,6 +34,7 @@ const checkAdmin = async (req, res, next) => {
       .maybeSingle();
 
     const isAdmin = profile?.role === 'admin' ||
+      user.email === 'edenandthreadlogin@gmail.com' ||
       user.email === 'admin@mail.com' ||
       user.email === 'admin@edenthreads.luxury';
 

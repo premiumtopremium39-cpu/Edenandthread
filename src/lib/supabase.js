@@ -48,7 +48,11 @@ export const formatUserData = (user, profile = null) => {
   if (!user) return null;
   const meta = user.user_metadata || {};
   const fullName = profile?.full_name || meta.full_name || meta.name || user.email?.split('@')[0] || 'Patron';
-  const role = profile?.role || (user.email === 'admin@mail.com' || user.email === 'admin@edenthreads.luxury' ? 'admin' : 'customer');
+  const role = profile?.role || (
+    user.email === 'edenandthreadlogin@gmail.com' ||
+    user.email === 'admin@mail.com' ||
+    user.email === 'admin@edenthreads.luxury' ? 'admin' : 'customer'
+  );
 
   return {
     id: user.id,

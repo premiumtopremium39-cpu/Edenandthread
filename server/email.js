@@ -14,7 +14,7 @@ dotenv.config();
 const getEmailConfig = () => {
   const providerKey = (process.env.RESEND_API_KEY || process.env.EMAIL_PROVIDER_API_KEY || '').trim();
   const emailFrom = (process.env.EMAIL_FROM || '').trim() || 'EDEN & THREAD <orders@edenthreads.luxury>';
-  const storeOwnerEmail = (process.env.STORE_OWNER_EMAIL || '').trim();
+  const storeOwnerEmail = (process.env.STORE_OWNER_EMAIL || '').trim() || 'edenandthreadlogin@gmail.com';
   const publicSiteUrl = (process.env.PUBLIC_SITE_URL || '').trim() || 'https://eden-threads.vercel.app';
 
   // SMTP Settings

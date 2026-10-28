@@ -28,6 +28,7 @@ export default function AdminPage({
 
   // Authorization check
   const isAdmin = user?.role === 'admin' ||
+    user?.email === 'edenandthreadlogin@gmail.com' ||
     user?.email === 'admin@mail.com' ||
     user?.email === 'admin@edenthreads.luxury' ||
     (typeof window !== 'undefined' && localStorage.getItem('eden_threads_admin_session') === 'true');
