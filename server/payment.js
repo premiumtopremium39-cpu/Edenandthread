@@ -245,7 +245,7 @@ router.post("/create-order", async (req, res) => {
     if (paymentMethod === "cod") {
       const { error: codErr } = await supabaseAdmin
         .from('orders')
-        .insert([{
+        .upsert([{
           order_id: internalOrderId,
           customer_name: shippingDetails.name,
           customer_email: shippingDetails.email,
@@ -266,7 +266,7 @@ router.post("/create-order", async (req, res) => {
             reservation_expires_at: reservationExpiresAt,
             applied_coupon: calculation.appliedCoupon
           }
-        }]);
+        }], { onConflict: 'order_id' });
 
       if (codErr) {
         await releaseInventoryReservation({ orderId: internalOrderId, reason: 'order_creation_failed' });
