@@ -2,12 +2,14 @@ import React, { useState, useEffect, useCallback } from 'react';
 
 const SLIDES = [
   {
-    bgImage: "/assets/hero_lifestyle_collection.jpg",
+    webpImage: "/assets/hero_lifestyle_collection.webp",
+    jpgImage: "/assets/hero_lifestyle_collection.jpg",
     alt: "Explore Collections - Eden & Thread",
     linkHref: "#shop"
   },
   {
-    bgImage: "/assets/hero_curated_essentials.jpg",
+    webpImage: "/assets/hero_curated_essentials.webp",
+    jpgImage: "/assets/hero_curated_essentials.jpg",
     alt: "Curated Everyday Essentials - Eden & Thread",
     linkHref: "#shop"
   }
@@ -40,7 +42,7 @@ export default function HeroSlider() {
             className={`hero-slide ${index === activeIndex ? 'active' : ''}`}
             aria-label={slide.alt}
             style={{ 
-              backgroundImage: `url('${slide.bgImage}')`,
+              backgroundImage: `image-set(url('${slide.webpImage}') type('image/webp'), url('${slide.jpgImage}') type('image/jpeg'))`,
               cursor: 'pointer',
               display: 'block',
               textDecoration: 'none'
