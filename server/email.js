@@ -631,7 +631,7 @@ export function renderStoreOwnerOrderEmail(order) {
           <tr>
             <td style="padding: 0 24px 24px 24px; text-align: center;">
               <a href="${adminOrderUrl}" style="display: inline-block; background-color: #143C28; color: #D4AF37; text-decoration: none; font-size: 13px; font-weight: 600; padding: 12px 24px; border-radius: 4px; text-transform: uppercase; letter-spacing: 0.08em;">
-                Open Admin Dashboard &amp; Book Shadowfax Dispatch →
+                Open Admin Dashboard &amp; Manage Dispatch →
               </a>
             </td>
           </tr>
@@ -674,9 +674,11 @@ export function renderCustomerDispatchEmail(order, shipmentDetails = {}) {
   const config = getEmailConfig();
   const orderId = escapeHtml(order.order_id || order.orderId);
   const customerName = escapeHtml(order.customer_name || order.shipping?.name || 'Valued Patron');
-  const courierName = escapeHtml(shipmentDetails.courier || order.carrier || 'Shadowfax Express Forward Logistics');
+  const courierName = escapeHtml(shipmentDetails.courier || order.carrier || 'Standard Courier Express');
   const awbNumber = escapeHtml(shipmentDetails.awbNumber || order.tracking_number || '—');
-  const trackingUrl = shipmentDetails.trackingUrl || `https://tracker.shadowfax.in/#/track?tracking_id=${encodeURIComponent(awbNumber)}`;
+  const trackingUrl = shipmentDetails.trackingUrl || (order.carrier?.toLowerCase().includes('shadowfax') 
+    ? `https://tracker.shadowfax.in/#/track?tracking_id=${encodeURIComponent(awbNumber)}`
+    : `${config.publicSiteUrl}/#track?orderId=${encodeURIComponent(orderId)}`);
   const items = order.items || [];
 
   const subject = `Your Order #${orderId} Has Been Dispatched — Tracking #${awbNumber}`;

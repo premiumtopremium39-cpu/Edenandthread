@@ -25,6 +25,10 @@ export default function AdminPage({
   const [isBookingShipment, setIsBookingShipment] = useState(false);
   const [isCheckingService, setIsCheckingService] = useState(false);
   const [serviceabilityResult, setServiceabilityResult] = useState(null);
+  const [manualCarrier, setManualCarrier] = useState('');
+  const [manualAwb, setManualAwb] = useState('');
+  const [manualTrackingUrl, setManualTrackingUrl] = useState('');
+  const [isSavingManualDispatch, setIsSavingManualDispatch] = useState(false);
 
   // Authorization check
   const isAdmin = user?.role === 'admin' ||
@@ -160,6 +164,50 @@ export default function AdminPage({
     }
   };
 
+  // Save Manual Courier Dispatch
+  const handleSaveManualDispatch = async (order) => {
+    if (!manualAwb.trim()) {
+      showToast('<i class="fa-solid fa-triangle-exclamation"></i> Please enter an AWB / Tracking Number');
+      return;
+    }
+
+    const carrierName = manualCarrier.trim() || 'Express Courier';
+    const trackingNum = manualAwb.trim();
+    const trackingLink = manualTrackingUrl.trim() || '';
+
+    setIsSavingManualDispatch(true);
+    try {
+      if (onUpdateOrderStatus) {
+        await onUpdateOrderStatus(order.orderId, 'Dispatched', carrierName, trackingNum, 'Dispatched');
+      } else {
+        await orderService.updateOrderStatus(order.orderId, 'Dispatched', carrierName, trackingNum, 'Dispatched');
+      }
+
+      showToast(`<i class="fa-solid fa-circle-check"></i> Dispatch Details Saved! Carrier: ${carrierName}`);
+      setSelectedOrder(prev => ({
+        ...prev,
+        status: 'Dispatched',
+        carrier: carrierName,
+        trackingNumber: trackingNum,
+        notes: {
+          ...(prev.notes || {}),
+          carrier: carrierName,
+          tracking_number: trackingNum,
+          tracking_url: trackingLink,
+          fulfilment_status: 'Dispatched',
+          dispatched_manually: true
+        }
+      }));
+      setManualCarrier('');
+      setManualAwb('');
+      setManualTrackingUrl('');
+    } catch (err) {
+      showToast(`<i class="fa-solid fa-triangle-exclamation"></i> Failed to save tracking details: ${err.message}`);
+    } finally {
+      setIsSavingManualDispatch(false);
+    }
+  };
+
   // Print Packing Slip Trigger
   const handlePrintSlip = () => {
     window.print();
@@ -176,7 +224,7 @@ export default function AdminPage({
               EDEN &amp; THREAD ATELIER OPERATIONS
             </div>
             <h1 style={{ fontFamily: 'Playfair Display, serif', fontSize: '1.65rem', margin: '0.25rem 0 0 0', fontWeight: 600 }}>
-              Orders, Packing &amp; Shadowfax Logistics
+              Orders, Packing &amp; Dispatch Management
             </h1>
           </div>
           <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
@@ -492,19 +540,12 @@ export default function AdminPage({
                     </div>
                   </div>
 
-                  {/* SHIPPING DESTINATION & COURIER ACTIONS */}
+                  {/* SHIPPING DESTINATION */}
                   <div style={{ backgroundColor: '#FAF8F5', border: '1px solid #EFEAE4', padding: '1.25rem', borderRadius: '4px', marginBottom: '1.5rem' }}>
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.75rem' }}>
                       <div style={{ fontSize: '0.85rem', fontWeight: 700, color: '#143C28', textTransform: 'uppercase', letterSpacing: '0.08em' }}>
                         Customer Shipping Details
                       </div>
-                      <button
-                        onClick={() => handleCheckServiceability(selectedOrder)}
-                        disabled={isCheckingService}
-                        style={{ fontSize: '0.75rem', background: 'none', border: 'none', color: '#143C28', textDecoration: 'underline', cursor: 'pointer', fontWeight: 600 }}
-                      >
-                        {isCheckingService ? 'Checking Serviceability...' : 'Check Shadowfax Pincode'}
-                      </button>
                     </div>
 
                     <div style={{ fontSize: '0.85rem', color: 'var(--text-primary)', lineHeight: '1.5' }}>
@@ -516,57 +557,114 @@ export default function AdminPage({
                         Phone for courier: <strong>{selectedOrder.customerPhone || selectedOrder.shipping?.phone || '—'}</strong> | Email: {selectedOrder.customerEmail || selectedOrder.shipping?.email || '—'}
                       </div>
                     </div>
-
-                    {serviceabilityResult && (
-                      <div style={{ marginTop: '0.75rem', padding: '0.5rem 0.75rem', backgroundColor: serviceabilityResult.serviceable ? '#E8F5E9' : '#FFEBEE', borderRadius: '4px', fontSize: '0.78rem', color: serviceabilityResult.serviceable ? '#1B5E20' : '#C62828' }}>
-                        <i className={`fa-solid ${serviceabilityResult.serviceable ? 'fa-circle-check' : 'fa-circle-xmark'}`} style={{ marginRight: '0.4rem' }}></i>
-                        Pincode {serviceabilityResult.pincode}: {serviceabilityResult.serviceable ? 'Eligible for forward logistics dispatch' : 'Courier unserviceable'}
-                      </div>
-                    )}
                   </div>
 
-                  {/* SHADOWFAX BOOKING ACTION */}
-                  <div style={{ border: '2px dashed #143C28', padding: '1.25rem', borderRadius: '4px', textAlign: 'center', backgroundColor: '#fff' }}>
+                  {/* COURIER DISPATCH MANAGEMENT */}
+                  <div style={{ border: '1px solid #143C28', padding: '1.25rem', borderRadius: '4px', backgroundColor: '#fff' }}>
                     {selectedOrder.trackingNumber ? (
-                      <div>
+                      <div style={{ textAlign: 'center' }}>
                         <div style={{ fontSize: '0.75rem', textTransform: 'uppercase', letterSpacing: '0.1em', color: '#2E7D32', fontWeight: 700, marginBottom: '0.35rem' }}>
-                          ✓ Shipment Confirmed with {selectedOrder.carrier || 'Shadowfax'}
+                          ✓ Shipment Confirmed with {selectedOrder.carrier || 'Courier Partner'}
                         </div>
                         <div style={{ fontFamily: 'monospace', fontSize: '1.1rem', fontWeight: 700, color: '#143C28', marginBottom: '0.5rem' }}>
-                          AWB: {selectedOrder.trackingNumber}
+                          Tracking / AWB: {selectedOrder.trackingNumber}
                         </div>
-                        <a
-                          href={selectedOrder.notes?.tracking_url || `https://tracker.shadowfax.in/#/track?tracking_id=${encodeURIComponent(selectedOrder.trackingNumber)}`}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          style={{ display: 'inline-block', fontSize: '0.8rem', color: '#143C28', fontWeight: 600, textDecoration: 'underline' }}
-                        >
-                          Open Live Shadowfax Tracking Link →
-                        </a>
+                        {selectedOrder.notes?.tracking_url ? (
+                          <a
+                            href={selectedOrder.notes.tracking_url}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            style={{ display: 'inline-block', fontSize: '0.8rem', color: '#143C28', fontWeight: 600, textDecoration: 'underline', marginBottom: '0.75rem' }}
+                          >
+                            Open Live Tracking Link →
+                          </a>
+                        ) : null}
+                        <div style={{ marginTop: '0.5rem' }}>
+                          <button
+                            onClick={() => {
+                              setSelectedOrder(prev => ({
+                                ...prev,
+                                trackingNumber: null,
+                                carrier: null
+                              }));
+                            }}
+                            style={{
+                              background: 'none',
+                              border: 'none',
+                              fontSize: '0.75rem',
+                              color: '#666',
+                              textDecoration: 'underline',
+                              cursor: 'pointer'
+                            }}
+                          >
+                            Edit / Change Tracking Details
+                          </button>
+                        </div>
                       </div>
                     ) : (
                       <div>
-                        <div style={{ fontSize: '0.85rem', fontWeight: 600, color: '#143C28', marginBottom: '0.4rem' }}>
-                          Ready to dispatch this packed order?
+                        <div style={{ fontSize: '0.9rem', fontWeight: 700, color: '#143C28', marginBottom: '0.35rem' }}>
+                          Enter Courier &amp; Tracking Details Manually
                         </div>
                         <p style={{ fontSize: '0.78rem', color: 'var(--text-muted)', margin: '0 0 1rem 0' }}>
-                          Booking with Shadowfax generates an authentic forward logistics AWB, locks the order against duplicate shipping, and triggers the customer dispatch email.
+                          Enter your courier partner name (e.g. DTDC, Delhivery, BlueDart, India Post) and the AWB tracking number.
                         </p>
+                        
+                        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem', marginBottom: '0.75rem' }}>
+                          <div>
+                            <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: 600, color: '#444', marginBottom: '0.25rem' }}>
+                              Courier / Carrier Name
+                            </label>
+                            <input
+                              type="text"
+                              placeholder="e.g. DTDC, Delhivery, BlueDart"
+                              value={manualCarrier}
+                              onChange={(e) => setManualCarrier(e.target.value)}
+                              style={{ width: '100%', padding: '0.5rem 0.65rem', fontSize: '0.82rem', border: '1px solid #ccc', borderRadius: '4px' }}
+                            />
+                          </div>
+                          <div>
+                            <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: 600, color: '#444', marginBottom: '0.25rem' }}>
+                              AWB / Tracking Number *
+                            </label>
+                            <input
+                              type="text"
+                              placeholder="e.g. AWB987654321"
+                              value={manualAwb}
+                              onChange={(e) => setManualAwb(e.target.value)}
+                              style={{ width: '100%', padding: '0.5rem 0.65rem', fontSize: '0.82rem', border: '1px solid #ccc', borderRadius: '4px' }}
+                            />
+                          </div>
+                        </div>
+
+                        <div style={{ marginBottom: '1rem' }}>
+                          <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: 600, color: '#444', marginBottom: '0.25rem' }}>
+                            Tracking URL (Optional)
+                          </label>
+                          <input
+                            type="url"
+                            placeholder="https://track.courier.com/..."
+                            value={manualTrackingUrl}
+                            onChange={(e) => setManualTrackingUrl(e.target.value)}
+                            style={{ width: '100%', padding: '0.5rem 0.65rem', fontSize: '0.82rem', border: '1px solid #ccc', borderRadius: '4px' }}
+                          />
+                        </div>
+
                         <button
-                          onClick={() => handleBookShadowfax(selectedOrder)}
-                          disabled={isBookingShipment}
+                          onClick={() => handleSaveManualDispatch(selectedOrder)}
+                          disabled={isSavingManualDispatch}
                           className="btn-luxury"
                           style={{
-                            padding: '0.75rem 1.75rem',
-                            fontSize: '0.85rem',
+                            padding: '0.65rem 1.5rem',
+                            fontSize: '0.82rem',
                             display: 'inline-flex',
                             alignItems: 'center',
                             gap: '0.5rem',
-                            cursor: isBookingShipment ? 'not-allowed' : 'pointer'
+                            cursor: isSavingManualDispatch ? 'not-allowed' : 'pointer'
                           }}
                         >
-                          <i className="fa-solid fa-truck-ramp-box"></i>
-                          {isBookingShipment ? 'Booking Shadowfax Shipment...' : 'Book Shadowfax Dispatch'}
+                          <i className="fa-solid fa-truck-fast"></i>
+                          {isSavingManualDispatch ? 'Saving Dispatch...' : 'Save Dispatch & Mark Dispatched'}
                         </button>
                       </div>
                     )}
@@ -634,8 +732,8 @@ export default function AdminPage({
                       <div>
                         <strong>DISPATCH &amp; CARRIER:</strong>
                         <div style={{ marginTop: '0.35rem', lineHeight: '1.4' }}>
-                          Carrier: <strong>{selectedOrder.carrier || 'Shadowfax Forward Express'}</strong><br />
-                          AWB: <strong>{selectedOrder.trackingNumber || 'Unassigned (Pending Booking)'}</strong><br />
+                          Carrier: <strong>{selectedOrder.carrier || 'Manual Courier / Standard Express'}</strong><br />
+                          AWB: <strong>{selectedOrder.trackingNumber || 'Unassigned (Pending Dispatch)'}</strong><br />
                           Mode: <strong>{selectedOrder.notes?.payment_method === 'cod' ? 'CASH ON DELIVERY' : 'PREPAID'}</strong><br />
                           Packaging: <strong>Signature Flax Garment Bag + FSC Box</strong>
                         </div>

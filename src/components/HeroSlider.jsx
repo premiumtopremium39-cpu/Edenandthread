@@ -2,19 +2,13 @@ import React, { useState, useEffect, useCallback } from 'react';
 
 const SLIDES = [
   {
-    subtitle: "Welcome to Eden & Thread",
-    title: "Style Woven into Everyday Life.",
-    desc: "At Eden & Thread, we believe that true fashion lives at the intersection of modern versatility, effortless comfort, and lasting quality.",
     bgImage: "/assets/hero_lifestyle_collection.jpg",
-    linkText: "Explore Collections",
+    alt: "Explore Collections - Eden & Thread",
     linkHref: "#shop"
   },
   {
-    subtitle: "Curated Everyday Essentials",
-    title: "Crafted for Comfort. Designed for Your Life.",
-    desc: "From crisp men’s shirts and tailored pants to everyday casual denim and dynamic women's wear—designed to fit your rhythm.",
     bgImage: "/assets/hero_curated_essentials.jpg",
-    linkText: "Shop The Collection",
+    alt: "Curated Everyday Essentials - Eden & Thread",
     linkHref: "#shop"
   }
 ];
@@ -40,29 +34,43 @@ export default function HeroSlider() {
     <section className="hero-section" id="hero">
       <div className="hero-slider" id="heroSlider">
         {SLIDES.map((slide, index) => (
-          <div 
+          <a
             key={index}
-            className={`hero-slide ${index === activeIndex ? 'active' : ''}`} 
+            href={slide.linkHref}
+            className={`hero-slide ${index === activeIndex ? 'active' : ''}`}
+            aria-label={slide.alt}
             style={{ 
-              backgroundImage: `linear-gradient(to bottom, rgba(0,0,0,0.25), rgba(0,0,0,0.55)), url('${slide.bgImage}')` 
+              backgroundImage: `url('${slide.bgImage}')`,
+              cursor: 'pointer',
+              display: 'block',
+              textDecoration: 'none'
             }}
-          >
-            <div className="hero-content">
-              <span className="subtitle">{slide.subtitle}</span>
-              <h1 className="title">{slide.title}</h1>
-              <p className="desc">{slide.desc}</p>
-              <a href={slide.linkHref} className="btn btn-primary">{slide.linkText}</a>
-            </div>
-          </div>
+          />
         ))}
       </div>
 
       {/* Slider Nav */}
       <div className="slider-controls">
-        <button className="control-btn prev-btn" id="prevSlide" aria-label="Previous slide" onClick={prevSlide}>
+        <button 
+          className="control-btn prev-btn" 
+          id="prevSlide" 
+          aria-label="Previous slide" 
+          onClick={(e) => {
+            e.stopPropagation();
+            prevSlide();
+          }}
+        >
           <i className="fa-solid fa-chevron-left"></i>
         </button>
-        <button className="control-btn next-btn" id="nextSlide" aria-label="Next slide" onClick={nextSlide}>
+        <button 
+          className="control-btn next-btn" 
+          id="nextSlide" 
+          aria-label="Next slide" 
+          onClick={(e) => {
+            e.stopPropagation();
+            nextSlide();
+          }}
+        >
           <i className="fa-solid fa-chevron-right"></i>
         </button>
       </div>
@@ -73,7 +81,10 @@ export default function HeroSlider() {
             key={index}
             className={`dot ${index === activeIndex ? 'active' : ''}`} 
             data-index={index}
-            onClick={() => setActiveIndex(index)}
+            onClick={(e) => {
+              e.stopPropagation();
+              setActiveIndex(index);
+            }}
           ></span>
         ))}
       </div>
