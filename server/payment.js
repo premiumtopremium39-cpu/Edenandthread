@@ -403,9 +403,10 @@ router.post("/verify-payment", async (req, res) => {
       order_id
     } = req.body;
 
+    const razorpayOrderId = razorpay_order_id || req.body.razorpayOrderId || null;
     const { keySecret } = getRazorpayKeys();
 
-    if (!razorpay_order_id || !razorpay_payment_id || !razorpay_signature) {
+    if (!razorpayOrderId || !razorpay_payment_id || !razorpay_signature) {
       return res.status(400).json({
         success: false,
         verified: false,
@@ -416,7 +417,7 @@ router.post("/verify-payment", async (req, res) => {
     // 1. Strict HMAC SHA256 Signature Verification
     const expectedSignature = crypto
       .createHmac("sha256", keySecret)
-      .update(`${razorpay_order_id}|${razorpay_payment_id}`)
+      .update(`${razorpayOrderId}|${razorpay_payment_id}`)
       .digest("hex");
 
     const isMatch = crypto.timingSafeEqual(
