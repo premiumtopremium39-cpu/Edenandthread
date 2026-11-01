@@ -400,107 +400,268 @@ export default function CheckoutPage({ cartItems, onOrderComplete, showToast, us
 
   // Order Confirmation Success Screen
   if (confirmedOrder) {
+    const subtotalCalc = (confirmedOrder.items || []).reduce((sum, item) => sum + (Number(item.price || 0) * Number(item.qty || item.quantity || 1)), 0);
+    const shippingCharge = subtotalCalc >= 1500 ? 0 : 150;
+    const orderItems = confirmedOrder.items || [];
+
     return (
-      <div style={{ paddingTop: '110px', paddingBottom: '80px' }} className="checkout-page">
-        <div className="container" style={{ maxWidth: '680px', margin: '0 auto' }}>
-          <div style={{ backgroundColor: '#fff', border: '1px solid var(--border-light)', padding: '3rem', textAlign: 'left', boxShadow: '0 8px 30px rgba(0,0,0,0.04)' }}>
+      <div style={{ paddingTop: '110px', paddingBottom: '80px', backgroundColor: '#FDFBF7' }} className="checkout-page">
+        <div className="container" style={{ maxWidth: '820px', margin: '0 auto' }}>
+          
+          {/* Main Card */}
+          <div style={{ backgroundColor: '#fff', border: '1px solid var(--border-light)', padding: '2.5rem', boxShadow: '0 8px 30px rgba(0,0,0,0.04)' }}>
             
-            <div style={{ textAlign: 'center', marginBottom: '2rem' }}>
-              <div style={{ 
-                width: '64px', 
-                height: '64px', 
-                borderRadius: '50%', 
-                backgroundColor: '#EAF0EC', 
-                color: 'var(--green-dark)', 
-                display: 'flex', 
-                alignItems: 'center', 
-                justifyContent: 'center', 
-                margin: '0 auto 1.5rem', 
-                fontSize: '1.75rem' 
-              }}>
-                <i className="fa-solid fa-check"></i>
+            {/* Top Brand & Success Header */}
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', borderBottom: '2px solid #143C28', paddingBottom: '1.5rem', marginBottom: '2rem' }}>
+              <div>
+                <span style={{ fontSize: '0.75rem', textTransform: 'uppercase', letterSpacing: '0.25em', color: '#D4AF37', fontWeight: 700, display: 'block', marginBottom: '0.25rem' }}>
+                  Artisanal Luxury Apparel
+                </span>
+                <h1 style={{ fontFamily: 'Playfair Display, Georgia, serif', fontSize: '2rem', color: '#143C28', margin: 0, fontWeight: 700, letterSpacing: '0.05em' }}>
+                  EDEN &amp; THREAD
+                </h1>
+                <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginTop: '0.25rem' }}>
+                  Official Order Receipt &amp; Tax Invoice
+                </div>
               </div>
-              <h1 style={{ fontFamily: 'var(--font-display)', fontSize: '2.25rem', color: 'var(--green-dark)', fontWeight: 400, marginBottom: '0.5rem' }}>
-                Thank You for Your Order
-              </h1>
-              <p style={{ color: 'var(--text-secondary)', fontSize: '0.875rem' }}>
-                A confirmation concierge receipt has been transmitted to <strong>{confirmedOrder.shipping.email}</strong>.
+
+              <div style={{ textAlign: 'right' }}>
+                <div style={{ 
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '6px',
+                  backgroundColor: '#E8F5E9',
+                  color: '#1B5E20',
+                  padding: '0.35rem 0.85rem',
+                  fontSize: '0.78rem',
+                  fontWeight: 700,
+                  borderRadius: '20px',
+                  textTransform: 'uppercase',
+                  letterSpacing: '0.05em',
+                  marginBottom: '0.5rem'
+                }}>
+                  <i className="fa-solid fa-circle-check"></i> Order Confirmed
+                </div>
+                <div style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>
+                  Placed on: {confirmedOrder.timestamp || new Date().toLocaleDateString('en-IN', { dateStyle: 'medium' })}
+                </div>
+              </div>
+            </div>
+
+            {/* Thank you statement banner */}
+            <div style={{ backgroundColor: '#FAF8F5', border: '1px solid #EFEAE4', padding: '1.25rem 1.5rem', borderRadius: '4px', marginBottom: '2rem' }}>
+              <h2 style={{ fontFamily: 'Playfair Display, Georgia, serif', fontSize: '1.35rem', color: '#143C28', margin: '0 0 0.4rem 0', fontWeight: 600 }}>
+                Thank you for your order, {confirmedOrder.shipping?.name || 'Valued Patron'}!
+              </h2>
+              <p style={{ margin: 0, fontSize: '0.85rem', color: 'var(--text-secondary)', lineHeight: 1.6 }}>
+                We have received your order. An official receipt has been sent to <strong>{confirmedOrder.shipping?.email}</strong>. Our atelier artisans are currently preparing your garments for dispatch.
               </p>
             </div>
 
-            <div style={{ borderTop: '1px solid var(--border-light)', borderBottom: '1px solid var(--border-light)', padding: '1.5rem 0', margin: '2rem 0', display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(130px, 1fr))', gap: '1rem' }}>
+            {/* Order Identifiers Bar */}
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(160px, 1fr))', gap: '1.25rem', backgroundColor: '#FDFBF7', padding: '1.25rem', border: '1px solid #EFEAE4', borderRadius: '4px', marginBottom: '2rem' }}>
               <div>
-                <span style={{ fontSize: '0.75rem', textTransform: 'uppercase', letterSpacing: '0.05em', color: 'var(--text-muted)', display: 'block', marginBottom: '0.25rem' }}>
+                <span style={{ fontSize: '0.7rem', textTransform: 'uppercase', letterSpacing: '0.1em', color: 'var(--text-muted)', display: 'block', marginBottom: '0.25rem' }}>
                   Order Number
                 </span>
-                <strong style={{ fontSize: '0.9rem', color: 'var(--text-primary)', wordBreak: 'break-all' }}>
-                  {confirmedOrder.orderId}
+                <strong style={{ fontSize: '0.88rem', color: '#143C28', fontFamily: 'monospace' }}>
+                  #{confirmedOrder.orderId}
                 </strong>
               </div>
 
               <div>
-                <span style={{ fontSize: '0.75rem', textTransform: 'uppercase', letterSpacing: '0.05em', color: 'var(--text-muted)', display: 'block', marginBottom: '0.25rem' }}>
-                  Payment ID
+                <span style={{ fontSize: '0.7rem', textTransform: 'uppercase', letterSpacing: '0.1em', color: 'var(--text-muted)', display: 'block', marginBottom: '0.25rem' }}>
+                  Payment Reference
                 </span>
-                <strong style={{ fontSize: '0.9rem', color: 'var(--text-primary)', wordBreak: 'break-all' }}>
-                  {confirmedOrder.paymentId}
+                <strong style={{ fontSize: '0.88rem', color: 'var(--text-primary)', fontFamily: 'monospace' }}>
+                  {confirmedOrder.paymentId || 'PAYABLE_ON_DELIVERY'}
                 </strong>
               </div>
 
               <div>
-                <span style={{ fontSize: '0.75rem', textTransform: 'uppercase', letterSpacing: '0.05em', color: 'var(--text-muted)', display: 'block', marginBottom: '0.25rem' }}>
-                  Payment Status
+                <span style={{ fontSize: '0.7rem', textTransform: 'uppercase', letterSpacing: '0.1em', color: 'var(--text-muted)', display: 'block', marginBottom: '0.25rem' }}>
+                  Payment Method
                 </span>
-                <span style={{ 
-                  display: 'inline-block',
-                  backgroundColor: '#EAF0EC', 
-                  color: 'var(--green-dark)', 
-                  padding: '0.2rem 0.6rem', 
-                  fontSize: '0.75rem', 
-                  fontWeight: 600,
-                  borderRadius: '2px'
-                }}>
-                  <i className="fa-solid fa-shield-halved" style={{ marginRight: '4px' }}></i> {confirmedOrder.status}
-                </span>
+                <strong style={{ fontSize: '0.88rem', color: 'var(--text-primary)' }}>
+                  {confirmedOrder.paymentId === 'PAYABLE_ON_DELIVERY' ? 'Cash on Delivery' : 'Prepaid (Razorpay / UPI / Card)'}
+                </strong>
               </div>
 
               <div>
-                <span style={{ fontSize: '0.75rem', textTransform: 'uppercase', letterSpacing: '0.05em', color: 'var(--text-muted)', display: 'block', marginBottom: '0.25rem' }}>
-                  Amount Paid
+                <span style={{ fontSize: '0.7rem', textTransform: 'uppercase', letterSpacing: '0.1em', color: 'var(--text-muted)', display: 'block', marginBottom: '0.25rem' }}>
+                  Est. Delivery
                 </span>
-                <strong style={{ fontSize: '1rem', color: 'var(--green-dark)' }}>
-                  ₹{confirmedOrder.amount.toLocaleString('en-IN', { minimumFractionDigits: 2 })}
+                <strong style={{ fontSize: '0.88rem', color: '#2E7D32' }}>
+                  3 – 5 Business Days
                 </strong>
               </div>
             </div>
 
-            <div style={{ borderTop: '1px solid var(--border-light)', paddingTop: '1.75rem', marginBottom: '2.5rem' }}>
-              <h3 style={{ fontSize: '0.9rem', textTransform: 'uppercase', letterSpacing: '0.08em', color: 'var(--green-dark)', marginBottom: '1rem' }}>
-                Delivery Destination
-              </h3>
-              <p style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', lineHeight: 1.6 }}>
-                <strong>{confirmedOrder.shipping.name}</strong><br />
-                {confirmedOrder.shipping.address}<br />
-                {confirmedOrder.shipping.city} - {confirmedOrder.shipping.zip}, {confirmedOrder.shipping.country}
-              </p>
+            {/* ITEM DETAILS TABLE (With High-Res Garment Photo, Size, Color, Qty, Rate, Total) */}
+            <div style={{ marginBottom: '2rem' }}>
+              <div style={{ fontSize: '0.85rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.1em', color: '#143C28', marginBottom: '0.85rem' }}>
+                Items Ordered ({orderItems.length})
+              </div>
+
+              <div style={{ border: '1px solid #EFEAE4', borderRadius: '4px', overflow: 'hidden' }}>
+                <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.85rem' }}>
+                  <thead>
+                    <tr style={{ backgroundColor: '#FAF8F5', borderBottom: '1px solid #EFEAE4', color: '#444' }}>
+                      <th style={{ padding: '0.75rem 1rem', textAlign: 'left', fontWeight: 600 }}>Garment Details</th>
+                      <th style={{ padding: '0.75rem 0.5rem', textAlign: 'center', fontWeight: 600 }}>Size</th>
+                      <th style={{ padding: '0.75rem 0.5rem', textAlign: 'center', fontWeight: 600 }}>Colour</th>
+                      <th style={{ padding: '0.75rem 0.5rem', textAlign: 'center', fontWeight: 600 }}>Qty</th>
+                      <th style={{ padding: '0.75rem 1rem', textAlign: 'right', fontWeight: 600 }}>Total Price</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {orderItems.map((item, idx) => {
+                      const qty = Number(item.qty || item.quantity || 1);
+                      const price = Number(item.price || 0);
+                      const lineTotal = price * qty;
+                      const imgSrc = item.image || '/assets/set1/front.png';
+
+                      return (
+                        <tr key={idx} style={{ borderBottom: '1px solid #EFEAE4' }}>
+                          <td style={{ padding: '1rem', verticalAlign: 'middle' }}>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
+                              <img
+                                src={imgSrc}
+                                alt={item.title || item.name}
+                                style={{
+                                  width: '65px',
+                                  height: '80px',
+                                  objectFit: 'cover',
+                                  borderRadius: '3px',
+                                  border: '1px solid #E0DCD6',
+                                  backgroundColor: '#F9F8F6'
+                                }}
+                                onError={(e) => handleImageError(e, DEFAULT_FALLBACK_IMAGE)}
+                              />
+                              <div>
+                                <div style={{ fontFamily: 'Playfair Display, Georgia, serif', fontSize: '0.95rem', fontWeight: 600, color: '#143C28', lineHeight: 1.3 }}>
+                                  {item.title || item.name || 'Pure Artisanal Linen Garment'}
+                                </div>
+                                <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)', fontFamily: 'monospace', marginTop: '3px' }}>
+                                  SKU: {item.sku || `ET-PROD-${item.productId || idx + 1}`}
+                                </div>
+                                <div style={{ fontSize: '0.75rem', color: '#666', marginTop: '3px' }}>
+                                  Rate: ₹{price.toLocaleString('en-IN')}
+                                </div>
+                              </div>
+                            </div>
+                          </td>
+
+                          <td style={{ padding: '1rem 0.5rem', textAlign: 'center', verticalAlign: 'middle' }}>
+                            <span style={{ backgroundColor: '#143C28', color: '#fff', padding: '0.2rem 0.55rem', borderRadius: '3px', fontWeight: 700, fontSize: '0.75rem' }}>
+                              {item.size || 'M'}
+                            </span>
+                          </td>
+
+                          <td style={{ padding: '1rem 0.5rem', textAlign: 'center', verticalAlign: 'middle' }}>
+                            <span style={{ backgroundColor: '#FAF8F5', border: '1px solid #D4AF37', color: '#143C28', padding: '0.2rem 0.55rem', borderRadius: '3px', fontWeight: 600, fontSize: '0.75rem' }}>
+                              {item.color || 'Artisanal Natural'}
+                            </span>
+                          </td>
+
+                          <td style={{ padding: '1rem 0.5rem', textAlign: 'center', verticalAlign: 'middle', fontWeight: 600 }}>
+                            {qty}
+                          </td>
+
+                          <td style={{ padding: '1rem', textAlign: 'right', verticalAlign: 'middle', fontWeight: 700, color: '#143C28', fontSize: '0.95rem' }}>
+                            ₹{lineTotal.toLocaleString('en-IN', { minimumFractionDigits: 2 })}
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
             </div>
 
-            <div style={{ display: 'grid', gap: '0.75rem' }}>
+            {/* Split Section: Shipping Address (Left) & Price Summary (Right) */}
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '1.75rem', marginBottom: '2rem' }}>
+              
+              {/* Delivery Address */}
+              <div style={{ backgroundColor: '#FAF8F5', border: '1px solid #EFEAE4', padding: '1.25rem', borderRadius: '4px' }}>
+                <div style={{ fontSize: '0.75rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.1em', color: '#143C28', marginBottom: '0.75rem' }}>
+                  <i className="fa-solid fa-location-dot" style={{ marginRight: '6px' }}></i> Delivery Address
+                </div>
+                <div style={{ fontSize: '0.85rem', color: 'var(--text-primary)', lineHeight: 1.6 }}>
+                  <strong style={{ fontSize: '0.92rem', color: '#143C28' }}>{confirmedOrder.shipping?.name}</strong><br />
+                  {confirmedOrder.shipping?.address}<br />
+                  {confirmedOrder.shipping?.apartment ? `${confirmedOrder.shipping.apartment}, ` : ''}
+                  {confirmedOrder.shipping?.city} - <strong>{confirmedOrder.shipping?.zip}</strong>, {confirmedOrder.shipping?.state || 'India'}<br />
+                  <div style={{ marginTop: '0.5rem', color: 'var(--text-secondary)' }}>
+                    Phone: <strong>{confirmedOrder.shipping?.phone || '—'}</strong><br />
+                    Email: <strong>{confirmedOrder.shipping?.email}</strong>
+                  </div>
+                </div>
+              </div>
+
+              {/* Price Calculation Card */}
+              <div style={{ backgroundColor: '#FAF8F5', border: '1px solid #EFEAE4', padding: '1.25rem', borderRadius: '4px' }}>
+                <div style={{ fontSize: '0.75rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.1em', color: '#143C28', marginBottom: '0.75rem' }}>
+                  <i className="fa-solid fa-receipt" style={{ marginRight: '6px' }}></i> Payment Summary
+                </div>
+                
+                <div style={{ display: 'grid', gap: '0.5rem', fontSize: '0.85rem' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', color: 'var(--text-secondary)' }}>
+                    <span>Bag Total (MRP)</span>
+                    <span style={{ color: '#171717', fontWeight: 600 }}>₹{subtotalCalc.toLocaleString('en-IN', { minimumFractionDigits: 2 })}</span>
+                  </div>
+
+                  <div style={{ display: 'flex', justifyContent: 'space-between', color: 'var(--text-secondary)' }}>
+                    <span>Artisanal Shipping</span>
+                    <span style={{ color: shippingCharge === 0 ? '#2E7D32' : '#171717', fontWeight: 600 }}>
+                      {shippingCharge === 0 ? 'COMPLIMENTARY' : `₹${shippingCharge.toFixed(2)}`}
+                    </span>
+                  </div>
+
+                  <div style={{ display: 'flex', justifyContent: 'space-between', color: 'var(--text-secondary)' }}>
+                    <span>Applicable Taxes (GST 5% incl.)</span>
+                    <span style={{ color: '#2E7D32', fontWeight: 600 }}>Included</span>
+                  </div>
+
+                  <div style={{ display: 'flex', justifyContent: 'space-between', borderTop: '2px solid #143C28', paddingTop: '0.75rem', marginTop: '0.25rem', fontSize: '1.1rem', fontWeight: 700, color: '#143C28' }}>
+                    <span>Total Paid</span>
+                    <span>₹{confirmedOrder.amount.toLocaleString('en-IN', { minimumFractionDigits: 2 })}</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Need Assistance & Return Policy Note (Retail Standard) */}
+            <div style={{ borderTop: '1px solid #EFEAE4', paddingTop: '1.25rem', marginBottom: '2rem', display: 'flex', justifyContent: 'space-between', flexWrap: 'wrap', gap: '1rem', fontSize: '0.75rem', color: 'var(--text-muted)' }}>
+              <div>
+                <i className="fa-solid fa-rotate-left" style={{ marginRight: '4px' }}></i> 7-Day Hassle-free Exchange &amp; Returns
+              </div>
+              <div>
+                <i className="fa-solid fa-shield-check" style={{ marginRight: '4px' }}></i> 100% Certified European Flax Linen
+              </div>
+              <div>
+                <i className="fa-solid fa-headset" style={{ marginRight: '4px' }}></i> Concierge: concierge@edenthreads.luxury
+              </div>
+            </div>
+
+            {/* Action Buttons */}
+            <div style={{ display: 'grid', gap: '0.75rem' }} className="no-print">
               <a 
                 href={`#track/${confirmedOrder.orderId}`}
                 onClick={() => setConfirmedOrder(null)}
                 className="btn btn-primary"
-                style={{ width: '100%', padding: '1rem', fontSize: '0.85rem', letterSpacing: '0.1em', textTransform: 'uppercase', fontWeight: 600, textAlign: 'center', textDecoration: 'none', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px' }}
+                style={{ width: '100%', padding: '0.95rem', fontSize: '0.85rem', letterSpacing: '0.1em', textTransform: 'uppercase', fontWeight: 600, textAlign: 'center', textDecoration: 'none', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px' }}
               >
-                <i className="fa-solid fa-plane-departure"></i> Track Order Status Live
+                <i className="fa-solid fa-truck-fast"></i> Track Order Status Live
               </a>
+              
               <div style={{ display: 'flex', gap: '1rem', flexWrap: 'wrap' }}>
                 <button 
                   onClick={() => window.print()}
                   className="btn btn-secondary"
                   style={{ flex: 1, padding: '0.85rem', fontSize: '0.8rem', letterSpacing: '0.08em', textTransform: 'uppercase', fontWeight: 600 }}
                 >
-                  <i className="fa-solid fa-print" style={{ marginRight: '8px' }}></i> Print Receipt
+                  <i className="fa-solid fa-print" style={{ marginRight: '8px' }}></i> Print Official Tax Invoice
                 </button>
                 <a 
                   href="#shop"
@@ -508,10 +669,11 @@ export default function CheckoutPage({ cartItems, onOrderComplete, showToast, us
                   className="btn btn-secondary"
                   style={{ flex: 1, padding: '0.85rem', fontSize: '0.8rem', letterSpacing: '0.08em', textTransform: 'uppercase', fontWeight: 600, textAlign: 'center', textDecoration: 'none' }}
                 >
-                  Shop Collection
+                  Continue Shopping
                 </a>
               </div>
             </div>
+
           </div>
         </div>
       </div>

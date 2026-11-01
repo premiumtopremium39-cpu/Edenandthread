@@ -2308,3 +2308,61 @@ button {
   object-fit: cover;
   object-position: top center !important;
 }
+
+/* -------------------------------------------------------------
+   PRINT / PDF TAX INVOICE STYLES (Allen Solly / Luxury Standard)
+------------------------------------------------------------- */
+@media print {
+  /* Hide non-printable UI elements */
+  nav,
+  .navbar,
+  footer,
+  .footer,
+  .announcement-bar,
+  .cart-drawer,
+  .no-print,
+  button,
+  .btn,
+  .toast,
+  #toast-container {
+    display: none !important;
+  }
+
+  body, html {
+    background: #ffffff !important;
+    color: #000000 !important;
+    font-size: 11pt !important;
+    line-height: 1.4 !important;
+    margin: 0 !important;
+    padding: 0 !important;
+  }
+
+  .checkout-page {
+    padding-top: 0 !important;
+    padding-bottom: 0 !important;
+    background: #ffffff !important;
+  }
+
+  .container {
+    max-width: 100% !important;
+    width: 100% !important;
+    margin: 0 !important;
+    padding: 0 !important;
+  }
+
+  /* Make sure background colors, borders, and images print cleanly */
+  * {
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+    box-shadow: none !important;
+  }
+
+  /* Force table headers to repeat across pages if multiple */
+  table {
+    page-break-inside: auto;
+  }
+  tr {
+    page-break-inside: avoid;
+    page-break-after: auto;
+  }
+}
