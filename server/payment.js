@@ -509,15 +509,18 @@ router.post("/verify-payment", async (req, res) => {
       rawResponse: req.body
     });
 
-    // 5. Asynchronously dispatch Customer & Store Owner confirmation emails (idempotent)
+    // 5. Dispatch Customer & Store Owner confirmation emails (awaited to ensure serverless function completes before exit)
     const paidOrderSnapshot = {
       ...order,
       payment_id: razorpay_payment_id,
       payment_status: 'paid',
       order_status: 'Paid'
     };
-    dispatchOrderConfirmationEmails(paidOrderSnapshot)
-      .catch(err => console.error('[Async Order Email Dispatch Error in verify-payment]:', err.message));
+    try {
+      await dispatchOrderConfirmationEmails(paidOrderSnapshot);
+    } catch (err) {
+      console.error('[Order Email Dispatch Error in verify-payment]:', err.message);
+    }
 
     return res.json({
       success: true,
