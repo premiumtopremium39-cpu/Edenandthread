@@ -18,11 +18,11 @@ const getEmailConfig = () => {
   const publicSiteUrl = (process.env.PUBLIC_SITE_URL || '').trim() || 'https://eden-threads.vercel.app';
 
   // SMTP Settings
-  const smtpHost = (process.env.SMTP_HOST || '').trim();
-  const smtpPort = parseInt(process.env.SMTP_PORT || '587', 10);
-  const smtpUser = (process.env.SMTP_USER || '').trim();
-  const smtpPass = (process.env.SMTP_PASS || '').trim();
-  const smtpSecure = process.env.SMTP_SECURE === 'true' || smtpPort === 465;
+  const smtpHost = (process.env.SMTP_HOST || 'smtp.gmail.com').trim();
+  const smtpPort = parseInt(process.env.SMTP_PORT || '465', 10);
+  const smtpUser = (process.env.SMTP_USER || 'edenandthreadlogin@gmail.com').trim();
+  const smtpPass = (process.env.SMTP_PASS || 'nkomxubapplavcpw').trim();
+  const smtpSecure = process.env.SMTP_SECURE === 'true' || smtpPort === 465 || true;
 
   const isConfigured = Boolean(providerKey || (smtpHost && smtpUser && smtpPass));
 
@@ -71,50 +71,12 @@ export async function sendEmail({ to, subject, html, text, idempotencyKey = null
     return { success: false, reason: 'missing_recipient' };
   }
 
-  // 1. Try Resend REST API if provider key is set
-  if (config.providerKey) {
-    try {
-      const headers = {
-        'Authorization': `Bearer ${config.providerKey}`,
-        'Content-Type': 'application/json'
-      };
-      if (idempotencyKey) {
-        headers['Idempotency-Key'] = idempotencyKey;
-      }
-
-      const res = await fetch('https://api.resend.com/emails', {
-        method: 'POST',
-        headers,
-        body: JSON.stringify({
-          from: config.emailFrom,
-          to: [to.trim()],
-          subject,
-          html,
-          text
-        })
-      });
-
-      const resData = await res.json().catch(() => ({}));
-      if (res.ok) {
-        console.log(`[Resend Email Sent]: Message ID: ${resData.id} to ${to}`);
-        return {
-          success: true,
-          provider: 'resend',
-          messageId: resData.id,
-          to
-        };
-      } else {
-        console.warn(`[Resend Email Error]: ${resData.message || res.statusText}`);
-      }
-    } catch (err) {
-      console.error('[Resend Email Fetch Error]:', err.message);
-    }
-  }
-
-  // 2. Try SMTP if configured
+  // 1. Try Authenticated SMTP (Direct Gmail delivery) first if configured
   if (config.smtp.isConfigured) {
     try {
-      const transporter = nodemailer.createTransporter({
+      const createTransportFn = nodemailer.createTransport || nodemailer.default?.createTransport;
+      const transporter = createTransportFn({
+        service: 'gmail',
         host: config.smtp.host,
         port: config.smtp.port,
         secure: config.smtp.secure,
@@ -143,6 +105,9 @@ export async function sendEmail({ to, subject, html, text, idempotencyKey = null
       console.error('[SMTP Email Error]:', smtpErr.message);
     }
   }
+
+  // 2. Try Resend REST API if provider key is set
+  if (config.providerKey) {
 
   // 3. Fallback / Dev Sandbox Mode: Log complete email delivery securely
   const simulatedId = `msg_sim_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`;
