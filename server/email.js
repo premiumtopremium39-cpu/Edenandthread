@@ -108,6 +108,43 @@ export async function sendEmail({ to, subject, html, text, idempotencyKey = null
 
   // 2. Try Resend REST API if provider key is set
   if (config.providerKey) {
+    try {
+      const headers = {
+        'Authorization': `Bearer ${config.providerKey}`,
+        'Content-Type': 'application/json'
+      };
+      if (idempotencyKey) {
+        headers['Idempotency-Key'] = idempotencyKey;
+      }
+
+      const res = await fetch('https://api.resend.com/emails', {
+        method: 'POST',
+        headers,
+        body: JSON.stringify({
+          from: config.emailFrom,
+          to: [to.trim()],
+          subject,
+          html,
+          text
+        })
+      });
+
+      const resData = await res.json().catch(() => ({}));
+      if (res.ok) {
+        console.log(`[Resend Email Sent]: Message ID: ${resData.id} to ${to}`);
+        return {
+          success: true,
+          provider: 'resend',
+          messageId: resData.id,
+          to
+        };
+      } else {
+        console.warn(`[Resend Email Error]: ${resData.message || res.statusText}`);
+      }
+    } catch (err) {
+      console.error('[Resend Email Fetch Error]:', err.message);
+    }
+  }
 
   // 3. Fallback / Dev Sandbox Mode: Log complete email delivery securely
   const simulatedId = `msg_sim_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`;
