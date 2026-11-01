@@ -409,18 +409,18 @@ export default function CheckoutPage({ cartItems, onOrderComplete, showToast, us
         <div className="container" style={{ maxWidth: '820px', margin: '0 auto' }}>
           
           {/* Main Card */}
-          <div style={{ backgroundColor: '#fff', border: '1px solid var(--border-light)', padding: '2.5rem', boxShadow: '0 8px 30px rgba(0,0,0,0.04)' }}>
+          <div className="order-confirmation-card" style={{ backgroundColor: '#fff', border: '1px solid var(--border-light)', padding: '2.5rem', boxShadow: '0 8px 30px rgba(0,0,0,0.04)' }}>
             
             {/* Top Brand & Success Header */}
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', borderBottom: '2px solid #143C28', paddingBottom: '1.5rem', marginBottom: '2rem' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', borderBottom: '2px solid #143C28', paddingBottom: '1.25rem', marginBottom: '1.5rem' }}>
               <div>
-                <span style={{ fontSize: '0.75rem', textTransform: 'uppercase', letterSpacing: '0.25em', color: '#D4AF37', fontWeight: 700, display: 'block', marginBottom: '0.25rem' }}>
+                <span style={{ fontSize: '0.72rem', textTransform: 'uppercase', letterSpacing: '0.22em', color: '#D4AF37', fontWeight: 700, display: 'block', marginBottom: '0.2rem' }}>
                   Artisanal Luxury Apparel
                 </span>
-                <h1 style={{ fontFamily: 'Playfair Display, Georgia, serif', fontSize: '2rem', color: '#143C28', margin: 0, fontWeight: 700, letterSpacing: '0.05em' }}>
+                <h1 style={{ fontFamily: 'Playfair Display, Georgia, serif', fontSize: '1.85rem', color: '#143C28', margin: 0, fontWeight: 700, letterSpacing: '0.04em' }}>
                   EDEN &amp; THREAD
                 </h1>
-                <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginTop: '0.25rem' }}>
+                <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginTop: '0.2rem' }}>
                   Official Order Receipt &amp; Tax Invoice
                 </div>
               </div>
@@ -432,66 +432,66 @@ export default function CheckoutPage({ cartItems, onOrderComplete, showToast, us
                   gap: '6px',
                   backgroundColor: '#E8F5E9',
                   color: '#1B5E20',
-                  padding: '0.35rem 0.85rem',
-                  fontSize: '0.78rem',
+                  padding: '0.3rem 0.75rem',
+                  fontSize: '0.75rem',
                   fontWeight: 700,
                   borderRadius: '20px',
                   textTransform: 'uppercase',
                   letterSpacing: '0.05em',
-                  marginBottom: '0.5rem'
+                  marginBottom: '0.35rem'
                 }}>
                   <i className="fa-solid fa-circle-check"></i> Order Confirmed
                 </div>
-                <div style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>
-                  Placed on: {confirmedOrder.timestamp || new Date().toLocaleDateString('en-IN', { dateStyle: 'medium' })}
+                <div style={{ fontSize: '0.78rem', color: 'var(--text-secondary)' }}>
+                  Placed: {confirmedOrder.timestamp || new Date().toLocaleDateString('en-IN', { dateStyle: 'medium' })}
                 </div>
               </div>
             </div>
 
             {/* Thank you statement banner */}
-            <div style={{ backgroundColor: '#FAF8F5', border: '1px solid #EFEAE4', padding: '1.25rem 1.5rem', borderRadius: '4px', marginBottom: '2rem' }}>
-              <h2 style={{ fontFamily: 'Playfair Display, Georgia, serif', fontSize: '1.35rem', color: '#143C28', margin: '0 0 0.4rem 0', fontWeight: 600 }}>
+            <div style={{ backgroundColor: '#FAF8F5', border: '1px solid #EFEAE4', padding: '1rem 1.25rem', borderRadius: '4px', marginBottom: '1.5rem' }}>
+              <h2 style={{ fontFamily: 'Playfair Display, Georgia, serif', fontSize: '1.25rem', color: '#143C28', margin: '0 0 0.3rem 0', fontWeight: 600 }}>
                 Thank you for your order, {confirmedOrder.shipping?.name || 'Valued Patron'}!
               </h2>
-              <p style={{ margin: 0, fontSize: '0.85rem', color: 'var(--text-secondary)', lineHeight: 1.6 }}>
-                We have received your order. An official receipt has been sent to <strong>{confirmedOrder.shipping?.email}</strong>. Our atelier artisans are currently preparing your garments for dispatch.
+              <p style={{ margin: 0, fontSize: '0.82rem', color: 'var(--text-secondary)', lineHeight: 1.5 }}>
+                We have received your order. An official confirmation receipt has been sent to <strong>{confirmedOrder.shipping?.email}</strong>. Our atelier artisans are currently preparing your garments for dispatch.
               </p>
             </div>
 
-            {/* Order Identifiers Bar */}
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(160px, 1fr))', gap: '1.25rem', backgroundColor: '#FDFBF7', padding: '1.25rem', border: '1px solid #EFEAE4', borderRadius: '4px', marginBottom: '2rem' }}>
-              <div>
-                <span style={{ fontSize: '0.7rem', textTransform: 'uppercase', letterSpacing: '0.1em', color: 'var(--text-muted)', display: 'block', marginBottom: '0.25rem' }}>
+            {/* Order Identifiers Bar - Fixed table/grid structure preventing text overlap */}
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, minmax(0, 1fr))', gap: '1rem', backgroundColor: '#FDFBF7', padding: '1rem 1.25rem', border: '1px solid #EFEAE4', borderRadius: '4px', marginBottom: '1.5rem' }}>
+              <div style={{ minWidth: 0, overflowWrap: 'break-word', wordBreak: 'break-word' }}>
+                <span style={{ fontSize: '0.68rem', textTransform: 'uppercase', letterSpacing: '0.08em', color: 'var(--text-muted)', display: 'block', marginBottom: '0.2rem' }}>
                   Order Number
                 </span>
-                <strong style={{ fontSize: '0.88rem', color: '#143C28', fontFamily: 'monospace' }}>
+                <strong style={{ fontSize: '0.82rem', color: '#143C28', fontFamily: 'monospace', display: 'block', wordBreak: 'break-all', lineHeight: 1.3 }}>
                   #{confirmedOrder.orderId}
                 </strong>
               </div>
 
-              <div>
-                <span style={{ fontSize: '0.7rem', textTransform: 'uppercase', letterSpacing: '0.1em', color: 'var(--text-muted)', display: 'block', marginBottom: '0.25rem' }}>
+              <div style={{ minWidth: 0, overflowWrap: 'break-word', wordBreak: 'break-word' }}>
+                <span style={{ fontSize: '0.68rem', textTransform: 'uppercase', letterSpacing: '0.08em', color: 'var(--text-muted)', display: 'block', marginBottom: '0.2rem' }}>
                   Payment Reference
                 </span>
-                <strong style={{ fontSize: '0.88rem', color: 'var(--text-primary)', fontFamily: 'monospace' }}>
+                <strong style={{ fontSize: '0.82rem', color: 'var(--text-primary)', fontFamily: 'monospace', display: 'block', wordBreak: 'break-all', lineHeight: 1.3 }}>
                   {confirmedOrder.paymentId || 'PAYABLE_ON_DELIVERY'}
                 </strong>
               </div>
 
-              <div>
-                <span style={{ fontSize: '0.7rem', textTransform: 'uppercase', letterSpacing: '0.1em', color: 'var(--text-muted)', display: 'block', marginBottom: '0.25rem' }}>
+              <div style={{ minWidth: 0 }}>
+                <span style={{ fontSize: '0.68rem', textTransform: 'uppercase', letterSpacing: '0.08em', color: 'var(--text-muted)', display: 'block', marginBottom: '0.2rem' }}>
                   Payment Method
                 </span>
-                <strong style={{ fontSize: '0.88rem', color: 'var(--text-primary)' }}>
+                <strong style={{ fontSize: '0.82rem', color: 'var(--text-primary)', display: 'block', lineHeight: 1.3 }}>
                   {confirmedOrder.paymentId === 'PAYABLE_ON_DELIVERY' ? 'Cash on Delivery' : 'Prepaid (Razorpay / UPI / Card)'}
                 </strong>
               </div>
 
-              <div>
-                <span style={{ fontSize: '0.7rem', textTransform: 'uppercase', letterSpacing: '0.1em', color: 'var(--text-muted)', display: 'block', marginBottom: '0.25rem' }}>
+              <div style={{ minWidth: 0 }}>
+                <span style={{ fontSize: '0.68rem', textTransform: 'uppercase', letterSpacing: '0.08em', color: 'var(--text-muted)', display: 'block', marginBottom: '0.2rem' }}>
                   Est. Delivery
                 </span>
-                <strong style={{ fontSize: '0.88rem', color: '#2E7D32' }}>
+                <strong style={{ fontSize: '0.82rem', color: '#2E7D32', display: 'block', lineHeight: 1.3 }}>
                   3 – 5 Business Days
                 </strong>
               </div>
@@ -580,19 +580,19 @@ export default function CheckoutPage({ cartItems, onOrderComplete, showToast, us
             </div>
 
             {/* Split Section: Shipping Address (Left) & Price Summary (Right) */}
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '1.75rem', marginBottom: '2rem' }}>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '1.25rem', marginBottom: '1.5rem' }}>
               
               {/* Delivery Address */}
-              <div style={{ backgroundColor: '#FAF8F5', border: '1px solid #EFEAE4', padding: '1.25rem', borderRadius: '4px' }}>
-                <div style={{ fontSize: '0.75rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.1em', color: '#143C28', marginBottom: '0.75rem' }}>
+              <div style={{ backgroundColor: '#FAF8F5', border: '1px solid #EFEAE4', padding: '1.1rem 1.25rem', borderRadius: '4px' }}>
+                <div style={{ fontSize: '0.72rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.1em', color: '#143C28', marginBottom: '0.6rem' }}>
                   <i className="fa-solid fa-location-dot" style={{ marginRight: '6px' }}></i> Delivery Address
                 </div>
-                <div style={{ fontSize: '0.85rem', color: 'var(--text-primary)', lineHeight: 1.6 }}>
-                  <strong style={{ fontSize: '0.92rem', color: '#143C28' }}>{confirmedOrder.shipping?.name}</strong><br />
+                <div style={{ fontSize: '0.82rem', color: 'var(--text-primary)', lineHeight: 1.55 }}>
+                  <strong style={{ fontSize: '0.88rem', color: '#143C28' }}>{confirmedOrder.shipping?.name}</strong><br />
                   {confirmedOrder.shipping?.address}<br />
                   {confirmedOrder.shipping?.apartment ? `${confirmedOrder.shipping.apartment}, ` : ''}
                   {confirmedOrder.shipping?.city} - <strong>{confirmedOrder.shipping?.zip}</strong>, {confirmedOrder.shipping?.state || 'India'}<br />
-                  <div style={{ marginTop: '0.5rem', color: 'var(--text-secondary)' }}>
+                  <div style={{ marginTop: '0.4rem', color: 'var(--text-secondary)' }}>
                     Phone: <strong>{confirmedOrder.shipping?.phone || '—'}</strong><br />
                     Email: <strong>{confirmedOrder.shipping?.email}</strong>
                   </div>
@@ -600,12 +600,12 @@ export default function CheckoutPage({ cartItems, onOrderComplete, showToast, us
               </div>
 
               {/* Price Calculation Card */}
-              <div style={{ backgroundColor: '#FAF8F5', border: '1px solid #EFEAE4', padding: '1.25rem', borderRadius: '4px' }}>
-                <div style={{ fontSize: '0.75rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.1em', color: '#143C28', marginBottom: '0.75rem' }}>
+              <div style={{ backgroundColor: '#FAF8F5', border: '1px solid #EFEAE4', padding: '1.1rem 1.25rem', borderRadius: '4px' }}>
+                <div style={{ fontSize: '0.72rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.1em', color: '#143C28', marginBottom: '0.6rem' }}>
                   <i className="fa-solid fa-receipt" style={{ marginRight: '6px' }}></i> Payment Summary
                 </div>
                 
-                <div style={{ display: 'grid', gap: '0.5rem', fontSize: '0.85rem' }}>
+                <div style={{ display: 'grid', gap: '0.4rem', fontSize: '0.82rem' }}>
                   <div style={{ display: 'flex', justifyContent: 'space-between', color: 'var(--text-secondary)' }}>
                     <span>Bag Total (MRP)</span>
                     <span style={{ color: '#171717', fontWeight: 600 }}>₹{subtotalCalc.toLocaleString('en-IN', { minimumFractionDigits: 2 })}</span>
@@ -623,7 +623,7 @@ export default function CheckoutPage({ cartItems, onOrderComplete, showToast, us
                     <span style={{ color: '#2E7D32', fontWeight: 600 }}>Included</span>
                   </div>
 
-                  <div style={{ display: 'flex', justifyContent: 'space-between', borderTop: '2px solid #143C28', paddingTop: '0.75rem', marginTop: '0.25rem', fontSize: '1.1rem', fontWeight: 700, color: '#143C28' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', borderTop: '2px solid #143C28', paddingTop: '0.6rem', marginTop: '0.2rem', fontSize: '1rem', fontWeight: 700, color: '#143C28' }}>
                     <span>Total Paid</span>
                     <span>₹{confirmedOrder.amount.toLocaleString('en-IN', { minimumFractionDigits: 2 })}</span>
                   </div>
@@ -632,7 +632,7 @@ export default function CheckoutPage({ cartItems, onOrderComplete, showToast, us
             </div>
 
             {/* Need Assistance & Return Policy Note (Retail Standard) */}
-            <div style={{ borderTop: '1px solid #EFEAE4', paddingTop: '1.25rem', marginBottom: '2rem', display: 'flex', justifyContent: 'space-between', flexWrap: 'wrap', gap: '1rem', fontSize: '0.75rem', color: 'var(--text-muted)' }}>
+            <div style={{ borderTop: '1px solid #EFEAE4', paddingTop: '1rem', marginBottom: '1.5rem', display: 'flex', justifyContent: 'space-between', flexWrap: 'wrap', gap: '0.75rem', fontSize: '0.72rem', color: 'var(--text-muted)' }}>
               <div>
                 <i className="fa-solid fa-rotate-left" style={{ marginRight: '4px' }}></i> 7-Day Hassle-free Exchange &amp; Returns
               </div>

@@ -196,44 +196,43 @@ export function renderCustomerOrderEmail(order) {
     const qty = Number(item.quantity || item.qty || 1);
     const unitPrice = formatINR(item.price);
     const lineTotal = formatINR((item.price || 0) * qty);
-    const imageSrc = item.image ? (item.image.startsWith('http') ? item.image : `${config.publicSiteUrl}${item.image}`) : null;
+    const rawImg = item.image || '';
+    const imageSrc = rawImg ? (rawImg.startsWith('http') ? rawImg : `${config.publicSiteUrl}${rawImg.startsWith('/') ? '' : '/'}${rawImg}`) : 'https://eden-threads.vercel.app/assets/mens_linen_shirt.png';
 
     return `
       <tr>
-        <td style="padding: 16px 8px; border-bottom: 1px solid #EFEAE4; vertical-align: top;">
+        <td style="padding: 16px 8px; border-bottom: 1px solid #EFEAE4; vertical-align: middle;">
           <table cellpadding="0" cellspacing="0" border="0" style="width: 100%;">
             <tr>
-              ${imageSrc ? `
-              <td style="width: 64px; vertical-align: top; padding-right: 12px;">
-                <img src="${imageSrc}" alt="${title}" style="width: 64px; height: 78px; object-fit: cover; border-radius: 2px; border: 1px solid #EFEAE4; display: block;" />
+              <td style="width: 70px; vertical-align: middle; padding-right: 14px;">
+                <img src="${imageSrc}" alt="${title}" width="70" height="88" style="width: 70px; height: 88px; object-fit: cover; border-radius: 4px; border: 1px solid #E5E0D8; display: block;" />
               </td>
-              ` : ''}
-              <td style="vertical-align: top;">
-                <div style="font-family: 'Playfair Display', Georgia, serif; font-size: 15px; font-weight: 600; color: #143C28; line-height: 1.3;">
+              <td style="vertical-align: middle;">
+                <div style="font-family: 'Playfair Display', Georgia, serif; font-size: 15px; font-weight: 600; color: #143C28; line-height: 1.35;">
                   ${title}
                 </div>
-                <div style="font-size: 12px; color: #737373; margin-top: 4px;">
-                  SKU: <span style="font-family: monospace; color: #171717;">${sku}</span>
+                <div style="font-size: 11px; color: #888888; font-family: monospace; margin-top: 3px;">
+                  SKU: ${sku}
                 </div>
-                <div style="font-size: 13px; color: #404040; margin-top: 6px;">
-                  <span style="display: inline-block; background-color: #F8F6F0; padding: 2px 8px; border-radius: 2px; font-weight: 500; margin-right: 6px;">
-                    Size: <strong>${size}</strong>
+                <div style="margin-top: 6px;">
+                  <span style="display: inline-block; background-color: #143C28; color: #ffffff; font-size: 11px; font-weight: 700; padding: 2px 8px; border-radius: 2px; margin-right: 6px;">
+                    ${size}
                   </span>
-                  <span style="display: inline-block; background-color: #F8F6F0; padding: 2px 8px; border-radius: 2px; font-weight: 500;">
-                    Colour: <strong>${color}</strong>
+                  <span style="display: inline-block; background-color: #FAF8F5; border: 1px solid #D4AF37; color: #143C28; font-size: 11px; font-weight: 600; padding: 2px 8px; border-radius: 2px;">
+                    ${color}
                   </span>
                 </div>
               </td>
             </tr>
           </table>
         </td>
-        <td style="padding: 16px 8px; border-bottom: 1px solid #EFEAE4; text-align: center; vertical-align: middle; font-size: 14px; color: #171717;">
+        <td style="padding: 16px 8px; border-bottom: 1px solid #EFEAE4; text-align: center; vertical-align: middle; font-size: 14px; font-weight: 600; color: #171717;">
           ${qty}
         </td>
-        <td style="padding: 16px 8px; border-bottom: 1px solid #EFEAE4; text-align: right; vertical-align: middle; font-size: 14px; color: #171717;">
+        <td style="padding: 16px 8px; border-bottom: 1px solid #EFEAE4; text-align: right; vertical-align: middle; font-size: 13px; color: #555555;">
           ${unitPrice}
         </td>
-        <td style="padding: 16px 8px; border-bottom: 1px solid #EFEAE4; text-align: right; vertical-align: middle; font-size: 14px; font-weight: 600; color: #143C28;">
+        <td style="padding: 16px 8px; border-bottom: 1px solid #EFEAE4; text-align: right; vertical-align: middle; font-size: 14px; font-weight: 700; color: #143C28;">
           ${lineTotal}
         </td>
       </tr>
