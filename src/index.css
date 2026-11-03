@@ -2310,6 +2310,76 @@ button {
 }
 
 /* -------------------------------------------------------------
+   LUXURY APPAREL LOUPE & HOVER ZOOM (Allen Solly / Luxury Retail Standard)
+------------------------------------------------------------- */
+.pdp-zoom-container {
+  position: relative;
+  width: 100%;
+  aspect-ratio: 3/4;
+  overflow: hidden;
+  background-color: var(--bg-secondary);
+  border: 1px solid var(--border-light);
+  box-shadow: var(--shadow-soft);
+  cursor: crosshair;
+  user-select: none;
+}
+
+.pdp-zoom-image {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: top center;
+  transition: transform 0.15s ease-out;
+  display: block;
+}
+
+.pdp-zoom-badge {
+  position: absolute;
+  bottom: 1rem;
+  right: 1rem;
+  background-color: rgba(14, 37, 25, 0.85);
+  color: var(--gold);
+  border: 1px solid rgba(197, 160, 89, 0.4);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  padding: 0.35rem 0.75rem;
+  font-size: 0.68rem;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  border-radius: 20px;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  pointer-events: none;
+  z-index: 5;
+  transition: opacity 0.2s ease;
+}
+
+.pdp-zoom-lens {
+  position: absolute;
+  width: 130px;
+  height: 130px;
+  border-radius: 50%;
+  border: 2px solid var(--gold);
+  box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.2), inset 0 0 15px rgba(0, 0, 0, 0.2), 0 8px 25px rgba(0, 0, 0, 0.25);
+  pointer-events: none;
+  transform: translate(-50%, -50%);
+  background-repeat: no-repeat;
+  z-index: 10;
+  display: none;
+}
+
+@media (max-width: 992px) {
+  .pdp-zoom-container {
+    cursor: default;
+  }
+  .pdp-zoom-badge {
+    display: none;
+  }
+}
+
+/* -------------------------------------------------------------
    PRINT / PDF TAX INVOICE STYLES (Allen Solly / Luxury Standard)
 ------------------------------------------------------------- */
 @media print {

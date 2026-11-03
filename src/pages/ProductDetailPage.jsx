@@ -21,6 +21,11 @@ export default function ProductDetailPage({
   const [activeImgAlt, setActiveImgAlt] = useState('');
   const [activeTab, setActiveTab] = useState('details'); // 'details' | 'care' | 'sustainability' | 'shipping' | 'reviews'
 
+  // Precision Hover Loupe Zoom State (Allen Solly / Luxury Retail Standard)
+  const [isZooming, setIsZooming] = useState(false);
+  const [zoomPos, setZoomPos] = useState({ x: 50, y: 50 });
+  const [lensPos, setLensPos] = useState({ left: 0, top: 0, bgX: 0, bgY: 0 });
+
   // Admin role check
   const isAdmin = user?.role === 'admin' || (typeof window !== 'undefined' && localStorage.getItem("eden_threads_admin_session") === "true");
 
@@ -225,6 +230,33 @@ export default function ProductDetailPage({
     onAddToBag(product.id, selectedColor, selectedSize);
   };
 
+  // Loupe Zoom mouse motion calculations
+  const handleMouseMoveZoom = (e) => {
+    const rect = e.currentTarget.getBoundingClientRect();
+    const x = ((e.clientX - rect.left) / rect.width) * 100;
+    const y = ((e.clientY - rect.top) / rect.height) * 100;
+    
+    // Clamp to 0-100%
+    const clampedX = Math.max(0, Math.min(100, x));
+    const clampedY = Math.max(0, Math.min(100, y));
+
+    setZoomPos({ x: clampedX, y: clampedY });
+    setLensPos({
+      left: e.clientX - rect.left,
+      top: e.clientY - rect.top,
+      bgX: clampedX,
+      bgY: clampedY
+    });
+  };
+
+  const handleMouseEnterZoom = () => {
+    setIsZooming(true);
+  };
+
+  const handleMouseLeaveZoom = () => {
+    setIsZooming(false);
+  };
+
   return (
     <div className="product-detail-page" style={{ paddingTop: '160px', paddingBottom: '100px', backgroundColor: 'var(--bg-primary)', minHeight: '100vh' }}>
       <div className="container" style={{ maxWidth: '1240px' }}>
@@ -241,20 +273,38 @@ export default function ProductDetailPage({
         {/* Product Layout Grid */}
         <div style={{ display: 'grid', gridTemplateColumns: '1.15fr 0.85fr', gap: '4.5rem', marginBottom: '5rem', alignItems: 'start' }} className="pdp-grid">
           
-          {/* Left Column: Photo Gallery Component */}
+          {/* Left Column: Photo Gallery Component with Interactive Zoom */}
           <div>
-            <div className="pdp-gallery-main" style={{ width: '100%', aspectRatio: '3/4', backgroundColor: 'var(--bg-secondary)', overflow: 'hidden', position: 'relative', border: '1px solid var(--border-light)', boxShadow: 'var(--shadow-soft)' }}>
+            <div 
+              className="pdp-zoom-container"
+              onMouseEnter={handleMouseEnterZoom}
+              onMouseMove={handleMouseMoveZoom}
+              onMouseLeave={handleMouseLeaveZoom}
+            >
               <img 
                 src={activeImgUrl} 
                 alt={activeImgAlt} 
-                style={{ width: '100%', height: '100%', objectFit: 'cover', objectPosition: 'top center' }}
+                className="pdp-zoom-image"
+                style={{
+                  transformOrigin: `${zoomPos.x}% ${zoomPos.y}%`,
+                  transform: isZooming ? 'scale(2.2)' : 'scale(1)'
+                }}
                 onError={(e) => handleImageError(e, DEFAULT_FALLBACK_IMAGE)}
               />
+
               {product.badge && (
-                <span className="product-badge" style={{ position: 'absolute', top: '1.25rem', left: '1.25rem', zIndex: 2 }}>
+                <span className="product-badge" style={{ position: 'absolute', top: '1.25rem', left: '1.25rem', zIndex: 3 }}>
                   {product.badge}
                 </span>
               )}
+
+              {/* Luxury Loupe Indicator Badge */}
+              <div 
+                className="pdp-zoom-badge"
+                style={{ opacity: isZooming ? 0 : 1 }}
+              >
+                <i className="fa-solid fa-magnifying-glass-plus"></i> Roll over image to zoom
+              </div>
             </div>
 
             {/* Thumbnail Selector List - Perfectly Aligned 5-Column Grid */}

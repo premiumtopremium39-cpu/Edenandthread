@@ -15,6 +15,8 @@ export default function QuickViewModal({
   const [activeImgUrl, setActiveImgUrl] = useState('');
   const [activeImgAlt, setActiveImgAlt] = useState('');
   const [activeThumbIdx, setActiveThumbIdx] = useState(0);
+  const [isZooming, setIsZooming] = useState(false);
+  const [zoomPos, setZoomPos] = useState({ x: 50, y: 50 });
 
   useEffect(() => {
     if (product) {
@@ -42,6 +44,13 @@ export default function QuickViewModal({
     setActiveImgUrl(url);
     setActiveImgAlt(`${product.title} - ${name}`);
     setActiveThumbIdx(idx);
+  };
+
+  const handleMouseMoveZoom = (e) => {
+    const rect = e.currentTarget.getBoundingClientRect();
+    const x = Math.max(0, Math.min(100, ((e.clientX - rect.left) / rect.width) * 100));
+    const y = Math.max(0, Math.min(100, ((e.clientY - rect.top) / rect.height) * 100));
+    setZoomPos({ x, y });
   };
 
   const handleColorChange = (colorName) => {
@@ -131,7 +140,7 @@ export default function QuickViewModal({
           {/* Gallery View */}
           <div className="modal-gallery" style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
             <div 
-              className="modal-main-img" 
+              className="modal-main-img pdp-zoom-container" 
               style={{ 
                 position: 'relative', 
                 aspectRatio: '3/4', 
@@ -139,6 +148,9 @@ export default function QuickViewModal({
                 overflow: 'hidden',
                 border: '1px solid var(--border-light)'
               }}
+              onMouseEnter={() => setIsZooming(true)}
+              onMouseMove={handleMouseMoveZoom}
+              onMouseLeave={() => setIsZooming(false)}
             >
               {product.badge && (
                 <span 
@@ -166,15 +178,24 @@ export default function QuickViewModal({
                 src={activeImgUrl || product.image} 
                 alt={activeImgAlt || product.title} 
                 id="modalMainImg" 
+                className="pdp-zoom-image"
                 style={{
                   width: '100%',
                   height: '100%',
                   objectFit: 'cover',
                   objectPosition: 'top center',
-                  transition: 'opacity 0.25s ease'
+                  transformOrigin: `${zoomPos.x}% ${zoomPos.y}%`,
+                  transform: isZooming ? 'scale(2.2)' : 'scale(1)',
+                  transition: 'transform 0.15s ease-out'
                 }}
                 onError={(e) => handleImageError(e, DEFAULT_FALLBACK_IMAGE)}
               />
+              <div 
+                className="pdp-zoom-badge"
+                style={{ opacity: isZooming ? 0 : 1 }}
+              >
+                <i className="fa-solid fa-magnifying-glass-plus"></i> Roll over image to zoom
+              </div>
             </div>
 
             {/* Thumbnail Navigation Row (5 Angle Views) */}
