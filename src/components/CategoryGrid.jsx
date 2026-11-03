@@ -2,34 +2,30 @@ import React from 'react';
 
 const CATEGORIES = [
   {
-    key: "spread-collar",
-    title: "Italian Spread Collar",
-    subtitle: "Sharp style for dinners & daily smart wear",
+    key: "with-collar",
+    title: "With Collar",
+    subtitle: "Classic spread & camp collar tailored shirts",
     image: "/assets/shirt_front.png"
   },
   {
-    key: "band-collar",
-    title: "Portofino Band Collar",
-    subtitle: "Clean collarless look for relaxed weekends",
+    key: "without-collar",
+    title: "Without Collar",
+    subtitle: "Band collar & relaxed popover silhouettes",
     image: "/assets/set1/front.png"
   },
   {
-    key: "camp-collar",
-    title: "Capri Camp Collar",
-    subtitle: "Open relaxed collar for hot sunny days",
-    image: "/assets/set2/front.png"
-  },
-  {
-    key: "popover",
-    title: "Riviera Popover",
-    subtitle: "Easy slip-on style for beach & travel",
-    image: "/assets/mens_linen_shirt.png"
+    key: "accessories",
+    title: "Accessories",
+    subtitle: "Curated linen pocket squares, stoles & bags",
+    image: "/assets/mens_linen_blazer.png"
   }
 ];
 
 export default function CategoryGrid({ onCategorySelect }) {
   const handleClick = (categoryKey) => {
-    onCategorySelect(categoryKey);
+    if (onCategorySelect) {
+      onCategorySelect(categoryKey);
+    }
     const shopSection = document.getElementById('shop');
     if (shopSection) {
       shopSection.scrollIntoView({ behavior: 'smooth' });
@@ -41,7 +37,7 @@ export default function CategoryGrid({ onCategorySelect }) {
       <div className="container">
         <div className="section-header">
           <h2 className="section-title">Choose Your Style</h2>
-          <p className="section-subtitle">Four classic linen shirt styles designed for every warm day.</p>
+          <p className="section-subtitle">Curated linen styles and artisanal essentials designed for every warm day.</p>
         </div>
         <div className="collections-grid">
           {CATEGORIES.map((cat) => (

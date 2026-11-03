@@ -206,6 +206,39 @@ const PRODUCTS = [
       }
     ],
     sizes: ["S", "M", "L", "XL"]
+  },
+  {
+    id: 6,
+    title: "Artisanal Linen Stole & Pocket Square Set",
+    category: "accessories",
+    price: 6500.00,
+    stock: 20,
+    image: "/assets/mens_linen_blazer.png",
+    badge: "Hand-Rolled Hem",
+    description: "Finely spun 100% Normandy flax linen stole with matching pocket square. Hand-rolled edges, lightweight drape, and refined artisanal texture for any tailored ensemble.",
+    colors: [
+      {
+        name: "Natural Flax",
+        code: "#E5DCD0",
+        stock: 10,
+        image: "/assets/mens_linen_blazer.png",
+        views: [
+          { name: "Front View", url: "/assets/mens_linen_blazer.png" },
+          { name: "Side View", url: "/assets/outerwear_blazer.png" }
+        ]
+      },
+      {
+        name: "Spruce Green",
+        code: "#143C28",
+        stock: 10,
+        image: "/assets/outerwear_blazer.png",
+        views: [
+          { name: "Front View", url: "/assets/outerwear_blazer.png" },
+          { name: "Detail View", url: "/assets/mens_linen_blazer.png" }
+        ]
+      }
+    ],
+    sizes: ["One Size"]
   }
 ];
 

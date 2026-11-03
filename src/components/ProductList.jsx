@@ -2,12 +2,10 @@ import React from 'react';
 import ProductCard from './ProductCard';
 
 const FILTER_TABS = [
-  { label: "All Linen", value: "all" },
-  { label: "Spread Collar", value: "spread-collar" },
-  { label: "Band Collar", value: "band-collar" },
-  { label: "Camp Collar", value: "camp-collar" },
-  { label: "Popover", value: "popover" },
-  { label: "Tailored Fit", value: "tailored-fit" }
+  { label: "All Curations", value: "all" },
+  { label: "With Collar", value: "with-collar" },
+  { label: "Without Collar", value: "without-collar" },
+  { label: "Accessories", value: "accessories" }
 ];
 
 export default function ProductList({ 
@@ -22,21 +20,34 @@ export default function ProductList({
   wishlist = [],
   onToggleWishlist
 }) {
+  // Helper to map product category to macro grouping or direct match
+  const matchesCategoryFilter = (productCat, selectedCat) => {
+    if (!selectedCat || selectedCat === 'all') return true;
+    if (productCat === selectedCat) return true;
+
+    // Macro categories
+    if (selectedCat === 'with-collar') {
+      return ['with-collar', 'spread-collar', 'camp-collar', 'tailored-fit'].includes(productCat);
+    }
+    if (selectedCat === 'without-collar') {
+      return ['without-collar', 'band-collar', 'popover', 'mandarin-collar'].includes(productCat);
+    }
+    if (selectedCat === 'accessories') {
+      return ['accessories', 'accessory'].includes(productCat);
+    }
+
+    return false;
+  };
+
   // 1. Filter products
   const filteredProducts = products.filter(p => {
-    // Category filter
-    let matchesCategory = false;
-    if (activeCategory === 'all' || !activeCategory) {
-      matchesCategory = true;
-    } else {
-      matchesCategory = p.category === activeCategory;
-    }
+    const matchesCategory = matchesCategoryFilter(p.category, activeCategory);
 
     // Search filter
     const matchesSearch = !searchQuery || 
       p.title.toLowerCase().includes(searchQuery.toLowerCase()) || 
       p.description.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      p.category.toLowerCase().includes(searchQuery.toLowerCase());
+      (p.category && p.category.toLowerCase().includes(searchQuery.toLowerCase()));
 
     return matchesCategory && matchesSearch;
   });
