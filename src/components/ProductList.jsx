@@ -25,15 +25,18 @@ export default function ProductList({
     if (!selectedCat || selectedCat === 'all') return true;
     if (productCat === selectedCat) return true;
 
+    const normCat = (productCat || '').toLowerCase().trim();
+    if (normCat === selectedCat.toLowerCase().trim()) return true;
+
     // Macro categories
     if (selectedCat === 'with-collar') {
-      return ['with-collar', 'spread-collar', 'camp-collar', 'tailored-fit'].includes(productCat);
+      return ['with-collar', 'with collar', 'spread-collar', 'camp-collar', 'tailored-fit', 'linen shirts'].includes(normCat);
     }
     if (selectedCat === 'without-collar') {
-      return ['without-collar', 'band-collar', 'popover', 'mandarin-collar'].includes(productCat);
+      return ['without-collar', 'without collar', 'band-collar', 'popover', 'mandarin-collar'].includes(normCat);
     }
     if (selectedCat === 'accessories') {
-      return ['accessories', 'accessory'].includes(productCat);
+      return ['accessories', 'accessory'].includes(normCat);
     }
 
     return false;
