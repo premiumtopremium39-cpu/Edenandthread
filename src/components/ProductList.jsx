@@ -3,8 +3,8 @@ import ProductCard from './ProductCard';
 
 const FILTER_TABS = [
   { label: "All Curations", value: "all" },
-  { label: "With Collar", value: "with-collar" },
-  { label: "Without Collar", value: "without-collar" },
+  { label: "With Pocket", value: "with-pocket" },
+  { label: "Without Pocket", value: "without-pocket" },
   { label: "Accessories", value: "accessories" }
 ];
 
@@ -28,12 +28,12 @@ export default function ProductList({
     const normCat = (productCat || '').toLowerCase().trim();
     if (normCat === selectedCat.toLowerCase().trim()) return true;
 
-    // Macro categories
-    if (selectedCat === 'with-collar') {
-      return ['with-collar', 'with collar', 'spread-collar', 'camp-collar', 'tailored-fit', 'linen shirts'].includes(normCat);
+    // Macro categories (support both pocket & collar legacy terms seamlessly)
+    if (selectedCat === 'with-pocket' || selectedCat === 'with-collar') {
+      return ['with-pocket', 'with pocket', 'with-collar', 'with collar', 'spread-collar', 'camp-collar', 'tailored-fit', 'linen shirts'].includes(normCat);
     }
-    if (selectedCat === 'without-collar') {
-      return ['without-collar', 'without collar', 'band-collar', 'popover', 'mandarin-collar'].includes(normCat);
+    if (selectedCat === 'without-pocket' || selectedCat === 'without-collar') {
+      return ['without-pocket', 'without pocket', 'without-collar', 'without collar', 'band-collar', 'popover', 'mandarin-collar'].includes(normCat);
     }
     if (selectedCat === 'accessories') {
       return ['accessories', 'accessory'].includes(normCat);

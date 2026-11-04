@@ -2,22 +2,25 @@ import React from 'react';
 
 const CATEGORIES = [
   {
-    key: "with-collar",
-    title: "With Collar",
-    subtitle: "Classic spread & camp collar tailored shirts",
-    image: "https://fkkfzmydaascwthtonsi.supabase.co/storage/v1/object/public/garment-photos/categories/with_collar.avif"
+    key: "with-pocket",
+    title: "With Pocket",
+    subtitle: "Classic functional pocket & tailored spread collar",
+    image: "https://fkkfzmydaascwthtonsi.supabase.co/storage/v1/object/public/garment-photos/categories/with_collar.avif",
+    position: "center 12%"
   },
   {
-    key: "without-collar",
-    title: "Without Collar",
-    subtitle: "Band collar & relaxed popover silhouettes",
-    image: "https://fkkfzmydaascwthtonsi.supabase.co/storage/v1/object/public/garment-photos/categories/without_collar.avif"
+    key: "without-pocket",
+    title: "Without Pocket",
+    subtitle: "Clean seamless chest & refined minimalist drape",
+    image: "https://fkkfzmydaascwthtonsi.supabase.co/storage/v1/object/public/garment-photos/categories/without_collar.avif",
+    position: "center 12%"
   },
   {
     key: "accessories",
     title: "Accessories",
-    subtitle: "Curated linen pocket squares, stoles & bags",
-    image: "/assets/mens_linen_blazer.png"
+    subtitle: "Handcrafted linen essentials, stoles & accessories",
+    image: "https://fkkfzmydaascwthtonsi.supabase.co/storage/v1/object/public/garment-photos/categories/accessories_luxury_essentials.avif",
+    position: "center center"
   }
 ];
 
@@ -53,7 +56,13 @@ export default function CategoryGrid({ onCategorySelect }) {
                 }
               }}
             >
-              <div className="card-bg" style={{ backgroundImage: `url('${cat.image}')` }}></div>
+              <div 
+                className="card-bg" 
+                style={{ 
+                  backgroundImage: `url('${cat.image}')`,
+                  backgroundPosition: cat.position || 'center top'
+                }}
+              ></div>
               <div className="card-overlay"></div>
               <div className="card-info">
                 <h3>{cat.title}</h3>
