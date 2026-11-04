@@ -5,13 +5,13 @@ const CATEGORIES = [
     key: "with-collar",
     title: "With Collar",
     subtitle: "Classic spread & camp collar tailored shirts",
-    image: "/assets/shirt_front.png"
+    image: "https://fkkfzmydaascwthtonsi.supabase.co/storage/v1/object/public/garment-photos/categories/with_collar.avif"
   },
   {
     key: "without-collar",
     title: "Without Collar",
     subtitle: "Band collar & relaxed popover silhouettes",
-    image: "/assets/set1/front.png"
+    image: "https://fkkfzmydaascwthtonsi.supabase.co/storage/v1/object/public/garment-photos/categories/without_collar.avif"
   },
   {
     key: "accessories",
