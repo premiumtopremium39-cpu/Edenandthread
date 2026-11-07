@@ -51,7 +51,7 @@ const ARTICLES = [
     category: "Atelier Heritage",
     date: "July 15, 2026",
     summary: "The journey of organic European flax. Why soil composition, coastal rainfall in northern France, and slow dew-retting create the world's strongest textile yarns.",
-    image: "/assets/hero_banner.png",
+    image: "/assets/journal_traceable_flax.avif",
     content: (
       <>
         <p>Textile quality begins in the soil. European flax requires zero artificial irrigation and minimal chemical treatments, relying instead on natural Atlantic rainfall and rich temperate loam along the Normandy coastline.</p>
