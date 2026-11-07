@@ -15,7 +15,7 @@ export default function BrandIntro() {
             display: 'block', 
             marginBottom: '1rem' 
           }}>
-            Welcome to Eden <span style={{ fontFamily: 'var(--font-display)', fontStyle: 'italic', fontWeight: 400 }}>&amp;</span> Thread
+            Welcome to Eden &amp; Thread
           </span>
           <h2 className="section-title-serif">Style Woven into Everyday Life</h2>
           <p className="lead-para">Every great style journey begins with a vision. At Eden &amp; Thread, we believe that true fashion lives at the intersection of modern versatility, effortless comfort, and lasting quality.</p>

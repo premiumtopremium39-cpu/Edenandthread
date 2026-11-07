@@ -25,7 +25,7 @@ export default function OurStoryPage() {
         {/* Editorial Visual Section */}
         <div style={{ position: 'relative', height: '450px', backgroundImage: "url('/assets/brand_values.png')", backgroundSize: 'cover', backgroundPosition: 'center', marginBottom: '4rem', border: '1px solid var(--border-light)' }}>
           <div style={{ position: 'absolute', bottom: '2rem', left: '2rem', backgroundColor: 'var(--glass-bg)', padding: '1.5rem 2rem', backdropFilter: 'blur(10px)', border: '1px solid var(--border-light)', maxWidth: '420px' }}>
-            <span style={{ fontSize: '0.7rem', textTransform: 'uppercase', letterSpacing: '0.1em', color: 'var(--text-muted)' }}>Welcome to Eden <span style={{ fontFamily: 'var(--font-display)', fontStyle: 'italic', fontWeight: 400 }}>&amp;</span> Thread</span>
+            <span style={{ fontSize: '0.7rem', textTransform: 'uppercase', letterSpacing: '0.1em', color: 'var(--text-muted)' }}>Welcome to Eden &amp; Thread</span>
             <p style={{ fontSize: '0.85rem', color: 'var(--text-primary)', marginTop: '0.5rem', lineHeight: 1.5, fontWeight: 500 }}>
               True fashion lives at the intersection of modern versatility, effortless comfort, and lasting quality.
             </p>
@@ -36,7 +36,7 @@ export default function OurStoryPage() {
         <div style={{ display: 'grid', gap: '3rem', lineHeight: 1.8, color: 'var(--text-secondary)', fontSize: '0.95rem' }}>
           <div>
             <h2 style={{ fontFamily: 'var(--font-display)', fontSize: '1.8rem', color: 'var(--green-dark)', fontWeight: 400, marginBottom: '1rem', textTransform: 'none' }}>
-              Welcome to Eden <span style={{ fontStyle: 'italic' }}>&amp;</span> Thread
+              Welcome to Eden &amp; Thread
             </h2>
             <p>
               Every great style journey begins with a vision. At Eden &amp; Thread, we believe that true fashion lives at the intersection of modern versatility, effortless comfort, and lasting quality.

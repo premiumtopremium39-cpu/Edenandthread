@@ -123,7 +123,7 @@ export default function Footer({ onCategoryChange }) {
 
         {/* Footer Bottom */}
         <div className="footer-bottom">
-          <p>&copy; 2026 EDEN <span style={{ fontFamily: 'var(--font-display)', fontStyle: 'italic', fontWeight: 400, color: 'var(--gold)', margin: '0 0.15em', fontSize: '1.15em' }}>&amp;</span> THREAD. All rights reserved.</p>
+          <p>&copy; 2026 EDEN <span style={{ fontFamily: 'var(--font-sans)', fontWeight: 400 }}>&amp;</span> THREAD. All rights reserved.</p>
           <div className="footer-badges">
             <span>Pure Natural Fabrics</span>
             <span>&bull;</span>
