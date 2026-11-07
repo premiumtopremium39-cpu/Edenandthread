@@ -10,10 +10,28 @@ dotenv.config();
 const app = express();
 const PORT = process.env.PORT || 5000;
 
-// Enable CORS for client Vite server, localtunnel, and Vercel domains
+// Whitelist allowed origins for CORS with credentials
+const ALLOWED_ORIGINS = [
+  "https://edenandthread.com",
+  "https://www.edenandthread.com",
+  "https://eden-threads.vercel.app",
+  "http://localhost:5173",
+  "http://localhost:3000",
+  "http://127.0.0.1:5173"
+];
+
 app.use(cors({
-  origin: true,
-  credentials: true
+  origin: (origin, callback) => {
+    // Allow server-to-server or curl/mobile requests without origin header
+    if (!origin) return callback(null, true);
+    if (ALLOWED_ORIGINS.includes(origin) || origin.endsWith(".vercel.app") || origin.endsWith(".loca.lt")) {
+      return callback(null, true);
+    }
+    return callback(new Error("CORS policy violation: Unauthorized origin"));
+  },
+  credentials: true,
+  methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
+  allowedHeaders: ["Content-Type", "Authorization", "X-Cron-Secret", "Accept"]
 }));
 
 // Express body parser with 50mb limit and rawBody capture for webhook cryptographic verification
@@ -53,22 +71,15 @@ app.post("/api/reviews", async (req, res) => {
     }
     const numProductId = Number(product_id);
 
-    // Verify if product exists in products table, if not ensure entry so FK constraint succeeds
-    try {
-      const { data: existingProd } = await supabaseAdmin.from('products').select('id').eq('id', numProductId).maybeSingle();
-      if (!existingProd) {
-        await supabaseAdmin.from('products').insert([{
-          id: numProductId,
-          title: `Linen Garment #${numProductId}`,
-          category: 'linen-shirts',
-          price: 18500,
-          stock: 15,
-          image: '/assets/shirt_front.png',
-          is_active: true
-        }]);
-      }
-    } catch (prodErr) {
-      console.warn('[Auto-create product for review warning]:', prodErr.message);
+    // Verify product exists prior to accepting review
+    const { data: existingProd } = await supabaseAdmin
+      .from('products')
+      .select('id')
+      .eq('id', numProductId)
+      .maybeSingle();
+
+    if (!existingProd) {
+      return res.status(404).json({ error: 'Cannot review non-existent product' });
     }
 
     const { data, error } = await supabaseAdmin
@@ -89,6 +100,43 @@ app.post("/api/reviews", async (req, res) => {
     res.json({ success: true, data });
   } catch (err) {
     res.status(500).json({ error: err.message });
+  }
+});
+
+// Dynamic XML Sitemap Route (Supabase Realtime Synced)
+app.get("/sitemap.xml", async (req, res) => {
+  try {
+    let products = [];
+    if (isServerSupabaseConfigured()) {
+      const { data } = await supabaseAdmin.from('products').select('id, title, updated_at').eq('is_active', true);
+      if (data) products = data;
+    }
+
+    const today = new Date().toISOString().split('T')[0];
+    let xml = `<?xml version="1.0" encoding="UTF-8"?>\n`;
+    xml += `<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9" xmlns:image="http://www.google.com/schemas/sitemap-image/1.1">\n`;
+
+    const staticRoutes = [
+      { loc: "https://edenandthread.com/", priority: "1.0", changefreq: "daily" },
+      { loc: "https://edenandthread.com/shop", priority: "0.9", changefreq: "daily" },
+      { loc: "https://edenandthread.com/story", priority: "0.8", changefreq: "monthly" },
+      { loc: "https://edenandthread.com/journal", priority: "0.8", changefreq: "weekly" }
+    ];
+
+    staticRoutes.forEach(r => {
+      xml += `  <url>\n    <loc>${r.loc}</loc>\n    <lastmod>${today}</lastmod>\n    <changefreq>${r.changefreq}</changefreq>\n    <priority>${r.priority}</priority>\n  </url>\n`;
+    });
+
+    products.forEach(p => {
+      const slug = p.title ? p.title.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '') : `product-${p.id}`;
+      xml += `  <url>\n    <loc>https://edenandthread.com/products/${slug}</loc>\n    <lastmod>${(p.updated_at || today).split('T')[0]}</lastmod>\n    <changefreq>daily</changefreq>\n    <priority>0.95</priority>\n  </url>\n`;
+    });
+
+    xml += `</urlset>`;
+    res.header('Content-Type', 'application/xml');
+    res.send(xml);
+  } catch (err) {
+    res.status(500).send('Error generating dynamic sitemap');
   }
 });
 

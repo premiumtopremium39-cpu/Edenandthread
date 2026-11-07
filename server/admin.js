@@ -26,7 +26,7 @@ const checkAdmin = async (req, res, next) => {
       return res.status(401).json({ error: 'Invalid or expired administrative credentials' });
     }
 
-    // Check if user has admin role in profiles or known admin email
+    // Check if user has admin role in profiles
     const { data: profile } = await supabaseAdmin
       .from('profiles')
       .select('role')
@@ -34,9 +34,9 @@ const checkAdmin = async (req, res, next) => {
       .maybeSingle();
 
     const isAdmin = profile?.role === 'admin' ||
-      user.email === 'edenandthreadlogin@gmail.com' ||
-      user.email === 'admin@mail.com' ||
-      user.email === 'admin@edenthreads.luxury';
+      user.app_metadata?.role === 'admin' ||
+      user.user_metadata?.role === 'admin' ||
+      (process.env.ADMIN_EMAIL && user.email === process.env.ADMIN_EMAIL);
 
     if (!isAdmin) {
       return res.status(403).json({ error: 'Access denied: Administrative privileges required' });

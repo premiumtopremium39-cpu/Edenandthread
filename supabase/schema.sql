@@ -204,8 +204,8 @@ RETURNS TRIGGER AS $$
 DECLARE
     user_role TEXT := 'customer';
 BEGIN
-    -- If user email is admin, assign admin role automatically
-    IF NEW.email = 'edenandthreadlogin@gmail.com' OR NEW.email = 'admin@mail.com' OR NEW.email = 'admin@edenthreads.luxury' THEN
+    -- Assign admin role exclusively if confirmed against verified administrative emails
+    IF NEW.email = 'edenandthreadlogin@gmail.com' THEN
         user_role := 'admin';
     END IF;
 
@@ -331,12 +331,12 @@ CREATE POLICY "Only admins can delete products"
     USING (TRUE);
 
 -- ------------------------------------------------------------------------------
--- 5.3 ORDERS POLICIES
+-- 5.3 ORDERS POLICIES (Hardened)
 -- ------------------------------------------------------------------------------
 DROP POLICY IF EXISTS "Users can view own orders" ON public.orders;
 CREATE POLICY "Users can view own orders"
     ON public.orders FOR SELECT
-    USING (TRUE);
+    USING (auth.uid() = user_id OR public.is_admin() OR auth.role() = 'service_role');
 
 DROP POLICY IF EXISTS "Anyone can place an order" ON public.orders;
 CREATE POLICY "Anyone can place an order"
@@ -346,8 +346,8 @@ CREATE POLICY "Anyone can place an order"
 DROP POLICY IF EXISTS "Admins can update order status and shipment" ON public.orders;
 CREATE POLICY "Admins can update order status and shipment"
     ON public.orders FOR UPDATE
-    USING (TRUE)
-    WITH CHECK (TRUE);
+    USING (public.is_admin() OR auth.role() = 'service_role')
+    WITH CHECK (public.is_admin() OR auth.role() = 'service_role');
 
 -- ------------------------------------------------------------------------------
 -- 5.4 PAYMENT_TRANSACTIONS POLICIES

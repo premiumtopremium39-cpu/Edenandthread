@@ -6,3 +6,4 @@ description: "UI/UX design intelligence for web, mobile, and desktop. This skill
 # UI/UX Pro Max - Design Intelligence
 
 Searchable local UI/UX guidance for high-end web e-commerce, aesthetics, pleasant rhythm, accessibility, spacing, typography, and visual hierarchy.
+

@@ -1,29 +1,32 @@
-# Eden & Thread
+# Eden & Thread — Luxury Artisanal Linen & Everyday Essentials
 
 > Style Woven into Everyday Life.
 
-Eden & Thread is a contemporary luxury apparel brand dedicated to natural fabrics, modern versatility, and conscious craftsmanship. The brand curates wardrobe essentials designed for effortless comfort and longevity.
+Eden & Thread is an Indian contemporary luxury apparel brand dedicated to pure organic natural fabrics, modern versatility, and conscious craftsmanship. All shirts are engineered with 100% pure organic European flax (140 GSM), reinforced French seams, and genuine mother-of-pearl buttons.
 
-## Brand Identity & Values
-- **Craftsmanship**: Premium natural fabrics, reinforced French seams, and mother-of-pearl buttons.
-- **Everyday Style**: Versatile designs engineered for seamless transitions from workdays to weekends.
-- **Customer First**: Curated luxury collections delivered with speed, duty-free worldwide shipping, and transparent order tracking.
+## Brand Identity & Core Pillars
+- **Craftsmanship**: Hand-cut European linen with zero polyester blending, structured collars, and single-needle tailoring.
+- **Sustainability**: Zero synthetic fibers, pre-washed for zero shrinkage and ultra-soft hand feel from day one.
+- **Service**: Pan-India insured delivery, 10-minute FCFS inventory reservation, tamper-evident luxury packaging.
 
-## Product Portfolio & Categories
-- **Pure Organic Linen Shirts**: Spread collar, mandarin collar, band collar, and Cuban camp shirts tailored from organic European flax.
-- **Tailored Trousers & Chinos**: Stretch-cotton twills and breathable linen trousers.
-- **Denim Collection**: Custom-milled denim with modern tapered silhouettes.
-- **Women's Dynamic Essentials**: Contemporary kurtis, essential leggings, and versatile track pants.
+## Flagship Product Catalog & Live Specifications
 
-## Flagship Atelier & Contact Information
-- **Location**: No 7 Vedagiri Street, Pasumpon Nagar, Pammal, Chennai - 600075, Tamil Nadu, India.
-- **Store Hours**: Open 10:00 AM – 9:30 PM Daily
+| Product SKU | Title | Category | Collar Type | Fabric & Composition | Regular Price (INR) | Available Colors | Available Sizes | Direct URL |
+| :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- |
+| `ET-LNN-001` | Classic Spread Collar Linen Shirt | Formal & Casual Menswear | Tailored Spread Collar | 100% Organic European Flax (140 GSM) | ₹24,999.00 | Pristine White, Sky Blue, Olive Green | S, M, L, XL | https://edenandthread.com/products/classic-spread-collar-linen-shirt |
+| `ET-LNN-002` | Portofino Band Collar Linen Shirt | Casual & Resort Menswear | Mandarin / Band Collar | Pre-Washed 100% Organic Flax | ₹18,500.00 | Pristine White, Sand Beige, Atelier Charcoal | S, M, L, XL | https://edenandthread.com/products/portofino-band-collar-linen-shirt |
+| `ET-LNN-003` | Capri Linen Spread Shirt | Vacation & Daytime Menswear | Modern Spread Collar | 100% European Flax | ₹19,999.00 | Coastal Blue, Ecru White, Sage | S, M, L, XL | https://edenandthread.com/products/capri-linen-spread-shirt |
+| `ET-LNN-004` | Amalfi Linen Band Shirt | Contemporary Evening Wear | Minimalist Band Collar | 100% European Flax | ₹19,500.00 | Natural Flax, Navy, Pearl White | S, M, L, XL | https://edenandthread.com/products/amalfi-linen-band-shirt |
+| `ET-LNN-005` | Riviera Relaxed Linen Shirt | Resort & Lounge Wear | Cuban Camp Collar | Pre-Washed Organic Flax | ₹21,000.00 | Olive Green, Sky Blue, Sand | S, M, L, XL | https://edenandthread.com/products/riviera-relaxed-linen-shirt |
+
+## Fabric Care & Maintenance
+- **Washing**: Machine wash cold on a gentle cycle or hand wash with mild, pH-neutral liquid detergent.
+- **Drying**: Hang dry in shade; avoid tumble drying to preserve natural flax fibers.
+- **Ironing**: Iron damp on medium-high heat with steam, or embrace natural relaxed creases.
+
+## Store Atelier & Contact Information
+- **Flagship Atelier**: No 7 Vedagiri Street, Pasumpon Nagar, Pammal, Chennai - 600075, Tamil Nadu, India.
+- **Hours**: 10:00 AM – 9:30 PM IST (Daily)
 - **Phone / WhatsApp Concierge**: +91 96771 27882
 - **Email**: contact@edenandthread.com
 - **Website**: https://edenandthread.com
-
-## Official Pages & Links
-- [Storefront & Catalog](https://edenandthread.com/#shop)
-- [About Us & Craft](https://edenandthread.com/#story)
-- [Garment Care Journal](https://edenandthread.com/#journal)
-- [Order Tracking](https://edenandthread.com/#track)

@@ -1,7 +1,15 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import BrandLogo from '../components/BrandLogo';
+import { updatePageSeo } from '../utils/seoHelper';
 
 export default function OurStoryPage() {
+  useEffect(() => {
+    updatePageSeo({
+      title: 'Our Story & Atelier Heritage | Eden & Thread',
+      description: 'Learn the story behind Eden & Thread. Dedicated to conscious natural fabrics, French seam craftsmanship, and European flax tailored for effortless comfort.',
+      canonicalUrl: 'https://edenandthread.com/story'
+    });
+  }, []);
   return (
     <div style={{ paddingTop: '110px', paddingBottom: '60px' }} className="our-story-page">
       <div className="container" style={{ maxWidth: '900px' }}>

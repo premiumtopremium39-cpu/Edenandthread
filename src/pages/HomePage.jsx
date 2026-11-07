@@ -1,10 +1,11 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import HeroSlider from '../components/HeroSlider';
 import BrandIntro from '../components/BrandIntro';
 import CategoryGrid from '../components/CategoryGrid';
 import ProductList from '../components/ProductList';
 import BrandValues from '../components/BrandValues';
 import NewsletterSignup from '../components/NewsletterSignup';
+import { updatePageSeo } from '../utils/seoHelper';
 
 export default function HomePage({ 
   products = [],
@@ -19,6 +20,13 @@ export default function HomePage({
   onToggleWishlist,
   onSubscribe 
 }) {
+  useEffect(() => {
+    updatePageSeo({
+      title: 'Eden & Thread | Luxury Pure Organic Linen Apparel & Essentials',
+      description: 'Discover Eden & Thread. Modern luxury menswear crafted from 100% pure organic European flax. Explore classic spread collar and band collar linen shirts with free delivery in India.',
+      canonicalUrl: 'https://edenandthread.com/'
+    });
+  }, []);
   return (
     <>
       <HeroSlider />

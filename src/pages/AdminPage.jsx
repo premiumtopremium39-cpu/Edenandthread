@@ -30,12 +30,11 @@ export default function AdminPage({
   const [manualTrackingUrl, setManualTrackingUrl] = useState('');
   const [isSavingManualDispatch, setIsSavingManualDispatch] = useState(false);
 
-  // Authorization check
+  // Authorization check - strictly based on authenticated user claims or profile role
   const isAdmin = user?.role === 'admin' ||
-    user?.email === 'edenandthreadlogin@gmail.com' ||
-    user?.email === 'admin@mail.com' ||
-    user?.email === 'admin@edenthreads.luxury' ||
-    (typeof window !== 'undefined' && localStorage.getItem('eden_threads_admin_session') === 'true');
+    user?.app_metadata?.role === 'admin' ||
+    user?.user_metadata?.role === 'admin' ||
+    user?.email === 'edenandthreadlogin@gmail.com';
 
   // Filtered & Searched Orders (Sorted newest first)
   const filteredOrders = useMemo(() => {

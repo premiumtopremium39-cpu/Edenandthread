@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import ProductCard from '../components/ProductCard';
 import { reviewService, isSupabaseConfigured } from '../lib/supabase';
 import { getProductColorViews, getProductColorStock, handleImageError, DEFAULT_FALLBACK_IMAGE } from '../utils/productViews';
+import { updatePageSeo, generateProductSchema } from '../utils/seoHelper';
 
 export default function ProductDetailPage({ 
   product, 
@@ -27,7 +28,7 @@ export default function ProductDetailPage({
   const [lensPos, setLensPos] = useState({ left: 0, top: 0, bgX: 0, bgY: 0 });
 
   // Admin role check
-  const isAdmin = user?.role === 'admin' || (typeof window !== 'undefined' && localStorage.getItem("eden_threads_admin_session") === "true");
+  const isAdmin = user?.role === 'admin' || user?.app_metadata?.role === 'admin';
 
   // Reviews state
   const [reviews, setReviews] = useState(() => {
@@ -76,8 +77,24 @@ export default function ProductDetailPage({
   const [newReview, setNewReview] = useState({ author: '', rating: 5, title: '', comment: '' });
   const [reviewSubmitted, setReviewSubmitted] = useState(false);
 
-  // Fetch reviews from Supabase / API when product loads or updates
+  // Fetch reviews and apply dynamic SEO metadata & Product Schema.org
   useEffect(() => {
+    if (product) {
+      const pageTitle = `${product.title} | Eden & Thread Luxury Linen`;
+      const metaDesc = `Buy ${product.title} handcrafted from 100% pure organic European flax. Features tailored craftsmanship, mother-of-pearl buttons. Free express delivery in India.`;
+      const canonical = `https://edenandthread.com/products/${product.id}`;
+      const ogImg = product.image?.startsWith('http') ? product.image : `https://edenandthread.com${product.image || '/assets/shirt_front.png'}`;
+      const schema = generateProductSchema(product);
+
+      updatePageSeo({
+        title: pageTitle,
+        description: metaDesc,
+        canonicalUrl: canonical,
+        ogImage: ogImg,
+        schemaData: schema
+      });
+    }
+
     async function loadCloudReviews() {
       if (!product?.id) return;
       try {

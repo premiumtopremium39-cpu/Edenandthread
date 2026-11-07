@@ -24,10 +24,10 @@ dotenv.config();
 const router = express.Router();
 
 const getRazorpayKeys = () => {
-  const keyId = (process.env.RAZORPAY_KEY_ID || "").trim() || "rzp_test_TrmfyllGcVE3Zv";
-  const keySecret = (process.env.RAZORPAY_KEY_SECRET || "").trim() || "a1iU8Gd6Ff2UTPBtAZ3H9iyg";
+  const keyId = (process.env.RAZORPAY_KEY_ID || "").trim();
+  const keySecret = (process.env.RAZORPAY_KEY_SECRET || "").trim();
   const webhookSecret = (process.env.RAZORPAY_WEBHOOK_SECRET || "").trim() || keySecret;
-  const configId = (process.env.RAZORPAY_CONFIG_ID || "").trim() || "config_Tsrko6CbrIPYEM";
+  const configId = (process.env.RAZORPAY_CONFIG_ID || "").trim();
   return { keyId, keySecret, webhookSecret, configId };
 };
 
@@ -658,11 +658,11 @@ router.post("/webhook", async (req, res) => {
  * Protected periodic cron cleanup endpoint for releasing expired inventory
  */
 router.post("/cleanup-reservations", async (req, res) => {
-  const cronSecret = req.headers["x-cron-secret"] || req.query.secret;
-  const expectedSecret = process.env.CRON_SECRET || "eden_threads_cron_secret_luxury";
+  const cronSecret = req.headers["x-cron-secret"] || req.headers["authorization"]?.replace("Bearer ", "") || req.query.secret;
+  const expectedSecret = process.env.CRON_SECRET;
 
-  if (cronSecret !== expectedSecret) {
-    return res.status(401).json({ error: "Unauthorized cron execution" });
+  if (!expectedSecret || cronSecret !== expectedSecret) {
+    return res.status(401).json({ error: "Unauthorized cron execution: valid secret required" });
   }
 
   const result = await cleanupExpiredReservations();

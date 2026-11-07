@@ -5,9 +5,18 @@
 
 User-agent: *
 Allow: /
-Disallow: /#admin
-Disallow: /#checkout
+Allow: /shop
+Allow: /story
+Allow: /journal
+Allow: /products/
+Disallow: /admin
+Disallow: /checkout
+Disallow: /cart
+Disallow: /account
+Disallow: /wishlist
 Disallow: /api/
+Disallow: /*?*sort=
+Disallow: /*?*filter=
 
 # AI Crawlers & Answer Engines (Permit full ingestion for Generative AI search)
 User-agent: GPTBot

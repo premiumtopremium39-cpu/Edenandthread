@@ -1,4 +1,5 @@
-import React from 'react';
+import React, { useEffect } from 'react';
+import { updatePageSeo } from '../utils/seoHelper';
 
 const ARTICLES = [
   {
@@ -84,12 +85,29 @@ const ARTICLES = [
 export default function JournalPage() {
   const [activeArticleId, setActiveArticleId] = React.useState(null);
 
+  const activeArticle = ARTICLES.find(a => a.id === activeArticleId);
+
+  useEffect(() => {
+    if (activeArticle) {
+      updatePageSeo({
+        title: `${activeArticle.title} | Eden & Thread Journal`,
+        description: activeArticle.summary,
+        canonicalUrl: 'https://edenandthread.com/journal',
+        ogImage: `https://edenandthread.com${activeArticle.image}`
+      });
+    } else {
+      updatePageSeo({
+        title: 'The Linen & Style Journal | Eden & Thread',
+        description: 'Read the Eden & Thread style and care journal. Discover guides on European flax, linen garment washing, resort capsule wardrobes, and coastal styling.',
+        canonicalUrl: 'https://edenandthread.com/journal'
+      });
+    }
+  }, [activeArticle]);
+
   const handleReadClick = (id) => {
     setActiveArticleId(id);
     window.scrollTo(0, 0);
   };
-
-  const activeArticle = ARTICLES.find(a => a.id === activeArticleId);
 
   return (
     <div style={{ paddingTop: '110px', paddingBottom: '60px' }} className="journal-page">
