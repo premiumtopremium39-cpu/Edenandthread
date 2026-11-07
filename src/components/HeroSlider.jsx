@@ -2,7 +2,6 @@ import React, { useState, useEffect, useCallback } from 'react';
 
 const SLIDES = [
   {
-    avifSupabase: "https://fkkfzmydaascwthtonsi.supabase.co/storage/v1/object/public/garment-photos/hero/hero_lifestyle_collection.avif",
     localAvif: "/assets/hero_lifestyle_collection.avif",
     webpImage: "/assets/hero_lifestyle_collection.webp",
     jpgImage: "/assets/hero_lifestyle_collection.jpg",
@@ -10,7 +9,6 @@ const SLIDES = [
     linkHref: "#shop"
   },
   {
-    avifSupabase: "https://fkkfzmydaascwthtonsi.supabase.co/storage/v1/object/public/garment-photos/hero/hero_curated_essentials.avif",
     localAvif: "/assets/hero_curated_essentials.avif",
     webpImage: "/assets/hero_curated_essentials.webp",
     jpgImage: "/assets/hero_curated_essentials.jpg",
@@ -46,7 +44,7 @@ export default function HeroSlider() {
             className={`hero-slide ${index === activeIndex ? 'active' : ''}`}
             aria-label={slide.alt}
             style={{ 
-              backgroundImage: `image-set(url('${slide.avifSupabase}') type('image/avif'), url('${slide.localAvif}') type('image/avif'), url('${slide.webpImage}') type('image/webp'), url('${slide.jpgImage}') type('image/jpeg'))`,
+              backgroundImage: `image-set(url('${slide.localAvif}') type('image/avif'), url('${slide.webpImage}') type('image/webp'), url('${slide.jpgImage}') type('image/jpeg'))`,
               cursor: 'pointer',
               display: 'block',
               textDecoration: 'none'

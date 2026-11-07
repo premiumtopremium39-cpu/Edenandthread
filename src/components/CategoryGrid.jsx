@@ -5,21 +5,21 @@ const CATEGORIES = [
     key: "with-pocket",
     title: "With Pocket",
     subtitle: "Classic functional pocket & tailored spread collar",
-    image: "https://fkkfzmydaascwthtonsi.supabase.co/storage/v1/object/public/garment-photos/categories/with_collar.avif",
+    image: "/assets/category_with_pocket.avif",
     position: "center 0%"
   },
   {
     key: "without-pocket",
     title: "Without Pocket",
     subtitle: "Clean seamless chest & refined minimalist drape",
-    image: "https://fkkfzmydaascwthtonsi.supabase.co/storage/v1/object/public/garment-photos/categories/without_collar.avif",
+    image: "/assets/category_without_pocket.avif",
     position: "center 0%"
   },
   {
     key: "accessories",
     title: "Accessories",
     subtitle: "Handcrafted leather goods, perfumes & lifestyle essentials",
-    image: "https://fkkfzmydaascwthtonsi.supabase.co/storage/v1/object/public/garment-photos/categories/leather_goods_bella_vita.avif",
+    image: "/assets/category_accessories_opt.avif",
     position: "center center"
   }
 ];
