@@ -751,13 +751,29 @@ button {
   gap: 1.5rem;
 }
 
-.collection-card {
+.collection-card,
+.category-card {
   position: relative;
-  height: 480px;
+  height: 540px;
   overflow: hidden;
   cursor: pointer;
   border-radius: 6px;
   box-shadow: 0 8px 24px rgba(0, 0, 0, 0.22);
+}
+
+.category-card-img,
+.category-card img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: center 25%;
+  display: block;
+  transition: transform 0.6s cubic-bezier(0.25, 1, 0.5, 1);
+}
+
+.collection-card:hover .category-card-img,
+.category-card:hover img {
+  transform: scale(1.05);
 }
 
 .card-bg {

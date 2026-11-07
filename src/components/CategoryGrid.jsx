@@ -6,14 +6,14 @@ const CATEGORIES = [
     title: "With Pocket",
     subtitle: "Classic functional pocket & tailored spread collar",
     image: "https://fkkfzmydaascwthtonsi.supabase.co/storage/v1/object/public/garment-photos/categories/with_collar.avif",
-    position: "center 15%"
+    position: "center 25%"
   },
   {
     key: "without-pocket",
     title: "Without Pocket",
     subtitle: "Clean seamless chest & refined minimalist drape",
     image: "https://fkkfzmydaascwthtonsi.supabase.co/storage/v1/object/public/garment-photos/categories/without_collar.avif",
-    position: "center 15%"
+    position: "center 25%"
   },
   {
     key: "accessories",
@@ -46,7 +46,7 @@ export default function CategoryGrid({ onCategorySelect }) {
           {CATEGORIES.map((cat) => (
             <div 
               key={cat.key} 
-              className="collection-card" 
+              className={`collection-card category-card ${cat.key}`} 
               onClick={() => handleClick(cat.key)}
               role="button"
               tabIndex={0}
@@ -56,13 +56,15 @@ export default function CategoryGrid({ onCategorySelect }) {
                 }
               }}
             >
-              <div 
-                className="card-bg" 
-                style={{ 
-                  backgroundImage: `url('${cat.image}')`,
-                  backgroundPosition: cat.position || 'center top'
+              <img 
+                src={cat.image} 
+                alt={cat.title}
+                className="category-card-img"
+                style={{
+                  objectPosition: cat.position || 'center 25%'
                 }}
-              ></div>
+                loading="eager"
+              />
               <div className="card-overlay"></div>
               <div className="card-info">
                 <h3>{cat.title}</h3>
