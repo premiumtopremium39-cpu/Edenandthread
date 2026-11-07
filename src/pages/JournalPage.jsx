@@ -7,7 +7,7 @@ const ARTICLES = [
     category: "Atelier Care Guide",
     date: "August 4, 2026",
     summary: "Linen is one of the most durable natural fibers on earth. Woven from flax, it naturally softens and gains character over time when cared for properly. Discover the essential methods to washing, drying, and wrinkle management.",
-    image: "/assets/mens_striped_linen_shirt.png",
+    image: "/assets/journal_linen_care.avif",
     content: (
       <>
         <p>Linen is a noble material. Woven from traceably certified flax fibers, it naturally breathes, regulates temperature, and offers a comfortable texture. Unlike synthetic fibers, linen grows softer with every single wash cycle. However, preserving its structural form and rich organic dye density requires careful adherence to care guides.</p>
@@ -29,7 +29,7 @@ const ARTICLES = [
     category: "Style Journal",
     date: "July 28, 2026",
     summary: "How to construct a minimalist resort capsule wardrobe that covers you for coastal holidays, weekend relaxation, and warm-weather business dinners. Eliminate the noise and build your linen uniform.",
-    image: "/assets/mens_linen_sweater.png",
+    image: "/assets/journal_capsule_wardrobe.avif",
     content: (
       <>
         <p>Modern fashion encourages rapid turnover and impulse purchases, resulting in packed closets filled with synthetic garments that fail to survive a single season. A linen-based capsule wardrobe represents the perfect counter-culture: buying less, but selecting significantly better pieces.</p>
@@ -68,7 +68,7 @@ const ARTICLES = [
     category: "Style Journal",
     date: "July 02, 2026",
     summary: "Styling advice on pairing camp collar linen shirts with tailored trousers and light outerwear for seamless Mediterranean sunset dining.",
-    image: "/assets/mens_linen_blazer.png",
+    image: "/assets/journal_coastal_evenings.avif",
     content: (
       <>
         <p>Resort dressing demands effortless versatility. The same linen garment that keeps you cool during midday coastal walks should seamlessly carry you into evening candlelit terraces.</p>

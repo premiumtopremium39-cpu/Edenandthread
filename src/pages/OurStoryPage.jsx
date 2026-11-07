@@ -23,8 +23,18 @@ export default function OurStoryPage() {
         </div>
 
         {/* Editorial Visual Section */}
-        <div style={{ position: 'relative', height: '450px', backgroundImage: "url('/assets/brand_values.png')", backgroundSize: 'cover', backgroundPosition: 'center', marginBottom: '4rem', border: '1px solid var(--border-light)' }}>
-          <div style={{ position: 'absolute', bottom: '2rem', left: '2rem', backgroundColor: 'var(--glass-bg)', padding: '1.5rem 2rem', backdropFilter: 'blur(10px)', border: '1px solid var(--border-light)', maxWidth: '420px' }}>
+        <div style={{ 
+          position: 'relative', 
+          height: '450px', 
+          backgroundImage: "url('/assets/our_story_craftsmanship.avif')", 
+          backgroundSize: 'cover', 
+          backgroundPosition: 'center 30%', 
+          marginBottom: '4rem', 
+          border: '1px solid var(--border-light)',
+          borderRadius: '4px',
+          overflow: 'hidden'
+        }}>
+          <div style={{ position: 'absolute', bottom: '2rem', left: '2rem', backgroundColor: 'var(--glass-bg)', padding: '1.5rem 2rem', backdropFilter: 'blur(10px)', border: '1px solid var(--border-light)', maxWidth: '420px', borderRadius: '4px' }}>
             <span style={{ fontSize: '0.7rem', textTransform: 'uppercase', letterSpacing: '0.1em', color: 'var(--text-muted)' }}>Welcome to Eden <span style={{ fontFamily: 'var(--font-sans)', fontWeight: 400 }}>&amp;</span> Thread</span>
             <p style={{ fontSize: '0.85rem', color: 'var(--text-primary)', marginTop: '0.5rem', lineHeight: 1.5, fontWeight: 500 }}>
               True fashion lives at the intersection of modern versatility, effortless comfort, and lasting quality.
