@@ -6,14 +6,14 @@ const CATEGORIES = [
     title: "With Pocket",
     subtitle: "Classic functional pocket & tailored spread collar",
     image: "https://fkkfzmydaascwthtonsi.supabase.co/storage/v1/object/public/garment-photos/categories/with_collar.avif",
-    position: "center 25%"
+    position: "center 0%"
   },
   {
     key: "without-pocket",
     title: "Without Pocket",
     subtitle: "Clean seamless chest & refined minimalist drape",
     image: "https://fkkfzmydaascwthtonsi.supabase.co/storage/v1/object/public/garment-photos/categories/without_collar.avif",
-    position: "center 25%"
+    position: "center 0%"
   },
   {
     key: "accessories",
