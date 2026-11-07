@@ -2043,8 +2043,9 @@ button {
     gap: 1.25rem;
   }
 
-  .collection-card {
-    height: 360px;
+  .collection-card,
+  .category-card {
+    height: 440px;
   }
 
   .values-grid {
@@ -2166,8 +2167,9 @@ button {
     grid-template-columns: 1fr;
   }
 
-  .collection-card {
-    height: 320px;
+  .collection-card,
+  .category-card {
+    height: 480px;
   }
 
   .product-grid {
