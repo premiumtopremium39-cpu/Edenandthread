@@ -101,9 +101,8 @@ export default function Footer({ onCategoryChange }) {
           <div className="footer-col">
             <h4>Flagship Atelier</h4>
             <p className="footer-address">
-              No. 7, Ground Floor, Pasumpon Nagar,<br />
-              Vedagiri Street, Pammal,<br />
-              Chennai - 600075, Tamil Nadu.
+              No 7 Vedagiri Street, Pasumpon<br />
+              Nagar, Pammal, Chennai &ndash; 600075
             </p>
             <div className="footer-contact-list">
               <a href="https://wa.me/919677127882" target="_blank" rel="noopener noreferrer" className="footer-contact-item">
@@ -116,7 +115,7 @@ export default function Footer({ onCategoryChange }) {
               </a>
               <div className="footer-hours">
                 <i className="fa-regular fa-clock"></i>
-                <span>Mon &ndash; Sat &bull; 9:30 AM &ndash; 7:30 PM</span>
+                <span>Open 10:00 AM &ndash; 9:30 PM Daily</span>
               </div>
             </div>
           </div>
@@ -124,7 +123,7 @@ export default function Footer({ onCategoryChange }) {
 
         {/* Footer Bottom */}
         <div className="footer-bottom">
-          <p>&copy; 2026 EDEN <span style={{ fontFamily: 'var(--font-sans)', fontWeight: 400 }}>&amp;</span> THREAD. All rights reserved.</p>
+          <p>&copy; 2026 EDEN <span style={{ fontFamily: 'var(--font-display)', fontStyle: 'italic', fontWeight: 400, color: 'var(--gold)', margin: '0 0.15em', fontSize: '1.15em' }}>&amp;</span> THREAD. All rights reserved.</p>
           <div className="footer-badges">
             <span>Pure Natural Fabrics</span>
             <span>&bull;</span>

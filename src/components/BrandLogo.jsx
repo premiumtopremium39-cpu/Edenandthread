@@ -22,7 +22,7 @@ export default function BrandLogo({
   textColor
 }) {
   const originalLogoSrc = '/assets/brand_logo.svg';
-  const newLeafLogoSrc = '/assets/brand_logo_leaf_header_footer.png';
+  const newLeafLogoSrc = '/assets/brand_leaf_three.svg';
   const logoSrc = (variant === 'header' || variant === 'footer') ? newLeafLogoSrc : originalLogoSrc;
 
   // 1. FULL CIRCLE EMBLEM (Round emblem with optional top-right 'EDEN & THREAD' green capsule badge)
@@ -81,7 +81,7 @@ export default function BrandLogo({
               lineHeight: 1.2
             }}
           >
-            EDEN &amp; THREAD
+            EDEN <span style={{ fontFamily: 'var(--font-display)', fontStyle: 'italic', fontWeight: 400, color: '#cca059', fontSize: '1.2em', margin: '0 0.1em' }}>&amp;</span> THREAD
           </div>
         )}
       </div>
@@ -137,7 +137,7 @@ export default function BrandLogo({
               whiteSpace: 'nowrap'
             }}
           >
-            EDEN <span style={{ fontFamily: 'var(--font-sans)', fontWeight: 300, color: 'var(--gold)', margin: '0 0.1em' }}>&amp;</span> THREAD
+            EDEN <span style={{ fontFamily: 'var(--font-display)', fontStyle: 'italic', fontWeight: 400, color: 'var(--gold)', margin: '0 0.15em', fontSize: '1.2em' }}>&amp;</span> THREAD
           </span>
         )}
       </div>
@@ -217,7 +217,7 @@ export default function BrandLogo({
             lineHeight: 1
           }}
         >
-          EDEN <span style={{ fontFamily: 'var(--font-sans)', fontWeight: 300, color: 'var(--gold)', margin: '0 0.1em' }}>&amp;</span> THREAD
+          EDEN <span style={{ fontFamily: 'var(--font-display)', fontStyle: 'italic', fontWeight: 400, color: 'var(--gold)', margin: '0 0.15em', fontSize: '1.2em' }}>&amp;</span> THREAD
         </span>
       )}
     </div>
