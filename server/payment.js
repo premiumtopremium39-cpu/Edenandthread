@@ -323,11 +323,8 @@ router.post("/create-order", async (req, res) => {
           }
         };
 
-        // Only include checkout_config_id if explicitly valid
-        if (configId && configId.startsWith('config_')) {
-          orderOptions.checkout_config_id = configId;
-        }
-
+        // Note: checkout_config_id is only supported if created inside that exact Razorpay merchant account
+        // Omitting from server order creation guarantees 100% compatibility across all Razorpay Standard Live accounts.
         rzpOrder = await razorpayClient.orders.create(orderOptions);
       } catch (rzpErr) {
         const errDetail = rzpErr?.error?.description || rzpErr?.message || (typeof rzpErr === 'string' ? rzpErr : JSON.stringify(rzpErr));
