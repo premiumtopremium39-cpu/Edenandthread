@@ -901,84 +901,32 @@ export default function CheckoutPage({ cartItems, onOrderComplete, showToast, us
                     </span>
                   </div>
 
-                  {/* Payment Method Selector Tabs */}
-                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem', marginBottom: '1.5rem' }}>
-                    <button
-                      type="button"
-                      onClick={() => setPaymentMethod('razorpay')}
-                      style={{ 
-                        padding: '1rem 0.75rem', 
-                        border: `1.5px solid ${paymentMethod === 'razorpay' ? 'var(--green-dark)' : 'var(--border-medium)'}`,
-                        backgroundColor: paymentMethod === 'razorpay' ? '#EAF0EC' : '#fff',
-                        fontWeight: 600,
-                        fontSize: '0.82rem',
-                        color: 'var(--green-dark)',
-                        transition: 'var(--transition-fast)',
-                        display: 'flex',
-                        flexDirection: 'column',
-                        alignItems: 'center',
-                        gap: '0.25rem',
-                        cursor: 'pointer'
-                      }}
-                    >
-                      <span style={{ display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
-                        <i className="fa-solid fa-credit-card"></i> UPI, Cards &amp; NetBanking
-                      </span>
-                      <span style={{ fontSize: '0.7rem', color: 'var(--text-secondary)', fontWeight: 400 }}>
-                        Official Razorpay Gateway
-                      </span>
-                    </button>
-
-                    <button
-                      type="button"
-                      onClick={() => setPaymentMethod('cod')}
-                      style={{ 
-                        padding: '1rem 0.75rem', 
-                        border: `1.5px solid ${paymentMethod === 'cod' ? 'var(--green-dark)' : 'var(--border-medium)'}`,
-                        backgroundColor: paymentMethod === 'cod' ? '#EAF0EC' : '#fff',
-                        fontWeight: 600,
-                        fontSize: '0.82rem',
-                        color: 'var(--green-dark)',
-                        transition: 'var(--transition-fast)',
-                        display: 'flex',
-                        flexDirection: 'column',
-                        alignItems: 'center',
-                        gap: '0.25rem',
-                        cursor: 'pointer'
-                      }}
-                    >
-                      <span style={{ display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
-                        <i className="fa-solid fa-truck"></i> Cash on Delivery
-                      </span>
-                      <span style={{ fontSize: '0.7rem', color: 'var(--text-secondary)', fontWeight: 400 }}>
-                        Pay upon physical delivery
-                      </span>
-                    </button>
-                  </div>
-
-                  {paymentMethod === 'razorpay' && (
-                    <div style={{ backgroundColor: 'var(--bg-secondary)', border: '1px solid var(--border-medium)', padding: '1.5rem', marginBottom: '1.5rem' }}>
-                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '1rem' }}>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                          <i className="fa-solid fa-lock" style={{ fontSize: '1.1rem', color: '#143C28' }}></i>
-                          <span style={{ fontSize: '0.85rem', fontWeight: 700, color: 'var(--text-primary)' }}>Secure Razorpay Checkout</span>
+                  {/* Payment Method Banner (Professional Luxury Prepaid Standard) */}
+                  <div style={{ backgroundColor: 'var(--bg-secondary)', border: '1px solid var(--border-medium)', padding: '1.5rem', marginBottom: '1.5rem' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '1rem' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem' }}>
+                        <i className="fa-solid fa-shield-halved" style={{ fontSize: '1.25rem', color: '#143C28' }}></i>
+                        <div>
+                          <span style={{ fontSize: '0.9rem', fontWeight: 700, color: 'var(--text-primary)', display: 'block' }}>
+                            Instant Verified Prepaid Payment
+                          </span>
+                          <span style={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>
+                            UPI (Google Pay, PhonePe, Paytm), Credit / Debit Cards &amp; NetBanking
+                          </span>
                         </div>
-                        <span style={{ fontSize: '0.7rem', color: 'var(--text-muted)' }}>PCI-DSS Certified</span>
                       </div>
-
-                      <p style={{ fontSize: '0.82rem', color: 'var(--text-secondary)', lineHeight: 1.5, marginBottom: '0.5rem' }}>
-                        Clicking the button reserves your inventory for 10 minutes and opens the secure <strong>Razorpay Checkout</strong> modal for instant payment via UPI, Debit/Credit Card, or NetBanking.
-                      </p>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                        <span style={{ fontSize: '0.72rem', fontWeight: 600, color: '#143C28', backgroundColor: '#EAF0EC', padding: '0.25rem 0.6rem', border: '1px solid #143C28', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+                          <i className="fa-solid fa-lock" style={{ marginRight: '4px' }}></i> 256-Bit SSL
+                        </span>
+                        <span style={{ fontSize: '0.7rem', color: 'var(--text-muted)' }}>PCI-DSS Tier 1</span>
+                      </div>
                     </div>
-                  )}
 
-                  {paymentMethod === 'cod' && (
-                    <div style={{ padding: '1.5rem', backgroundColor: 'var(--bg-secondary)', border: '1px solid var(--border-light)', marginBottom: '1.5rem' }}>
-                      <p style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', lineHeight: 1.6 }}>
-                        Inventory will be reserved for your order and dispatched. You will pay cash upon physical delivery. Please keep exact change ready.
-                      </p>
-                    </div>
-                  )}
+                    <p style={{ fontSize: '0.82rem', color: 'var(--text-secondary)', lineHeight: 1.5, margin: 0 }}>
+                      Your payment is processed securely via Razorpay with encrypted tokenization. Clicking the button reserves your inventory for 10 minutes and opens the secure checkout portal.
+                    </p>
+                  </div>
                 </div>
 
                 {/* Submit / Pay Button */}

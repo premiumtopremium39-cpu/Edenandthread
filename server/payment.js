@@ -310,11 +310,10 @@ router.post("/create-order", async (req, res) => {
     let rzpOrder = null;
     if (razorpayClient) {
       try {
-        rzpOrder = await razorpayClient.orders.create({
+        const orderOptions = {
           amount: calculation.amountInPaise,
           currency: "INR",
           receipt: internalOrderId,
-          checkout_config_id: configId || undefined,
           notes: {
             brand: "EDEN & THREAD",
             internal_order_id: internalOrderId,
@@ -322,14 +321,22 @@ router.post("/create-order", async (req, res) => {
             item_count: calculation.items.length,
             ...notes
           }
-        });
+        };
+
+        // Only include checkout_config_id if explicitly valid
+        if (configId && configId.startsWith('config_')) {
+          orderOptions.checkout_config_id = configId;
+        }
+
+        rzpOrder = await razorpayClient.orders.create(orderOptions);
       } catch (rzpErr) {
-        console.error("[Razorpay API Order Creation Failed]:", rzpErr.message);
+        const errDetail = rzpErr?.error?.description || rzpErr?.message || (typeof rzpErr === 'string' ? rzpErr : JSON.stringify(rzpErr));
+        console.error("[Razorpay API Order Creation Failed]:", errDetail);
         // Compensating transaction: release reserved inventory on payment gateway creation failure
         await releaseInventoryReservation({ orderId: internalOrderId, reason: 'razorpay_gateway_failure' });
         return res.status(502).json({
           success: false,
-          message: `Payment gateway temporarily unavailable: ${rzpErr.message}`
+          message: `Payment gateway temporarily unavailable: ${errDetail}`
         });
       }
     }
