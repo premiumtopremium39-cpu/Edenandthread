@@ -19,7 +19,7 @@ const CATEGORIES = [
     key: "accessories",
     title: "Accessories",
     subtitle: "Handcrafted leather goods, perfumes & lifestyle essentials",
-    image: "/assets/category_accessories_opt.avif",
+    image: "https://fkkfzmydaascwthtonsi.supabase.co/storage/v1/object/public/garment-photos/categories/category_accessories_opt.avif",
     position: "center center"
   }
 ];
