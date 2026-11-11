@@ -218,8 +218,9 @@ export default function CheckoutPage({ cartItems, onOrderComplete, showToast, us
       const serverOrderId = orderData.orderId;
       const razorpayOrderId = orderData.razorpayOrderId;
       const authoritativePaise = orderData.amountInPaise;
-      const activeKeyId = orderData.keyId || import.meta.env.VITE_RAZORPAY_KEY_ID || 'rzp_test_TrmfyllGcVE3Zv';
-      const activeConfigId = orderData.configId || import.meta.env.VITE_RAZORPAY_CONFIG_ID || 'config_Tsrko6CbrIPYEM';
+      const activeKeyId = orderData.keyId || import.meta.env.VITE_RAZORPAY_KEY_ID || '';
+      const activeConfigId = orderData.configId || import.meta.env.VITE_RAZORPAY_CONFIG_ID || '';
+      const isLiveMode = activeKeyId.startsWith('rzp_live');
 
       // Set reservation countdown based on authoritative server timestamp
       if (orderData.reservationExpiresAt) {
@@ -296,8 +297,8 @@ export default function CheckoutPage({ cartItems, onOrderComplete, showToast, us
         prefill: {
           name: formData.name,
           email: formData.email,
-          contact: formData.phone || '9876543210',
-          vpa: 'success@razorpay'
+          contact: formData.phone || '',
+          ...(isLiveMode ? {} : { vpa: 'success@razorpay' })
         },
         notes: {
           shipping_address: `${formData.address}, ${formData.city} - ${formData.zip}`
@@ -965,36 +966,9 @@ export default function CheckoutPage({ cartItems, onOrderComplete, showToast, us
                         <span style={{ fontSize: '0.7rem', color: 'var(--text-muted)' }}>PCI-DSS Certified</span>
                       </div>
 
-                      <p style={{ fontSize: '0.82rem', color: 'var(--text-secondary)', lineHeight: 1.5, marginBottom: '1rem' }}>
+                      <p style={{ fontSize: '0.82rem', color: 'var(--text-secondary)', lineHeight: 1.5, marginBottom: '0.5rem' }}>
                         Clicking the button reserves your inventory for 10 minutes and opens the secure <strong>Razorpay Checkout</strong> modal for instant payment via UPI, Debit/Credit Card, or NetBanking.
                       </p>
-
-                      <div style={{ backgroundColor: '#fff', border: '1px solid var(--border-light)', padding: '1rem', marginBottom: '0.5rem' }}>
-                        <span style={{ fontSize: '0.72rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.08em', color: 'var(--green-dark)', display: 'block', marginBottom: '0.5rem' }}>
-                          <i className="fa-solid fa-vial" style={{ marginRight: '5px', color: 'var(--gold)' }}></i> Sandbox Test Verification:
-                        </span>
-                        <button
-                          type="button"
-                          onClick={() => copyToClipboard('success@razorpay', 'UPI ID')}
-                          style={{ 
-                            width: '100%',
-                            padding: '0.65rem 0.85rem', 
-                            backgroundColor: 'var(--bg-secondary)', 
-                            border: '1px dashed var(--border-medium)', 
-                            textAlign: 'left', 
-                            cursor: 'pointer',
-                            display: 'flex',
-                            justifyContent: 'space-between',
-                            alignItems: 'center',
-                            fontSize: '0.8rem'
-                          }}
-                        >
-                          <span><strong style={{ color: 'var(--green-dark)' }}>Test UPI ID:</strong> success@razorpay</span>
-                          <span style={{ color: 'var(--gold)', fontWeight: 600, fontSize: '0.75rem' }}>
-                            {copiedField === 'UPI ID' ? '✓ Copied' : 'Copy'}
-                          </span>
-                        </button>
-                      </div>
                     </div>
                   )}
 
